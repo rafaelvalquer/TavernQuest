@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.feature.tavern
+import androidx.compose.foundation.layout.*;import androidx.compose.runtime.*;import androidx.compose.ui.Modifier;import androidx.compose.ui.unit.dp;import androidx.hilt.navigation.compose.hiltViewModel
+@Composable fun TavernScreen(vm:TavernViewModel=hiltViewModel(),onOpenBoard:()->Unit,onQuest:(String)->Unit){val s by vm.ui.collectAsState();Column(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){TavernHeader(s.tavern?.name?:"Taberna");if(s.hero!=null&&s.progress!=null)HeroSummaryCard(s.hero!!,s.progress!!);DailyBoardSummary(onOpenBoard);ActiveContractsSection(s.active,onQuest)}}

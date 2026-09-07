@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.core.designsystem.contract
+import androidx.compose.foundation.layout.*;import androidx.compose.material3.Text;import androidx.compose.runtime.Composable;import androidx.compose.ui.Modifier;import com.luminor.tavernquest.core.designsystem.components.ParchmentCard;import com.luminor.tavernquest.core.designsystem.progression.XpReward;import com.luminor.tavernquest.core.designsystem.theme.Ink;import com.luminor.tavernquest.domain.model.*
+@Composable fun ContractCard(contract:DailyContract,onClick:()->Unit,modifier:Modifier=Modifier){ParchmentCard(modifier,onClick){Text(contract.template.title,color=Ink);Text(contract.template.category.title,color=Ink);XpReward(contract.template.xpReward);Text(contract.status.name,color=Ink)}}

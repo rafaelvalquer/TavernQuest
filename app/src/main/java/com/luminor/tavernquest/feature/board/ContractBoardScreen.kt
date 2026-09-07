@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.feature.board
+import androidx.compose.foundation.layout.*;import androidx.compose.material3.Text;import androidx.compose.runtime.*;import androidx.compose.ui.Modifier;import androidx.compose.ui.unit.dp;import androidx.hilt.navigation.compose.hiltViewModel;import com.luminor.tavernquest.domain.model.ContractStatus
+@Composable fun ContractBoardScreen(vm:BoardViewModel=hiltViewModel(),onQuest:(String)->Unit){val s by vm.ui.collectAsState();Column(Modifier.fillMaxSize().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){BoardHeader();ContractLimitIndicator(s.contracts.count{it.status==ContractStatus.ACCEPTED});ContractCategoryBar(s.category,vm::filter);s.message?.let{Text(it)};ContractList(s.contracts,onQuest)}}

@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.data.local.database.dao
+import androidx.room.*; import com.luminor.tavernquest.data.local.database.entity.TavernMemberEntity
+@Dao interface TavernMemberDao{@Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun insert(v:TavernMemberEntity);@Query("SELECT * FROM tavern_member WHERE tavernId=:id") suspend fun getMembers(id:String):List<TavernMemberEntity>;@Query("SELECT * FROM tavern_member WHERE tavernId=:id AND role='OWNER' LIMIT 1") suspend fun getOwner(id:String):TavernMemberEntity?;@Query("DELETE FROM tavern_member") suspend fun deleteAll()}

@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.data.mapper
+import com.luminor.tavernquest.data.local.database.entity.*; import com.luminor.tavernquest.data.local.database.relation.DailyContractWithTemplate; import com.luminor.tavernquest.domain.model.*
+fun ContractTemplateEntity.toDomain()=ContractTemplate(id,title,description,ContractCategory.valueOf(category),ContractDifficulty.valueOf(difficulty),xpReward,enabled); fun ContractTemplate.toEntity()=ContractTemplateEntity(id,title,description,category.name,difficulty.name,xpReward,enabled); fun DailyContractWithTemplate.toDomain()=DailyContract(contract.id,template.toDomain(),contract.tavernId,contract.date,ContractStatus.valueOf(contract.status),contract.acceptedAt,contract.completedAt)

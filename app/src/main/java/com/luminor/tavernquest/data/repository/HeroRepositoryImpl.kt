@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.data.repository
+import com.luminor.tavernquest.data.local.database.dao.HeroDao;import com.luminor.tavernquest.data.mapper.*;import com.luminor.tavernquest.domain.model.Hero;import com.luminor.tavernquest.domain.repository.HeroRepository;import kotlinx.coroutines.flow.*
+class HeroRepositoryImpl(private val dao:HeroDao):HeroRepository{override suspend fun create(hero:Hero)=dao.insert(hero.toEntity());override suspend fun get()=dao.getHero()?.toDomain();override fun observe()=dao.observeHero().map{it?.toDomain()};override suspend fun addXp(heroId:String,amount:Int)=dao.updateXp(heroId,amount)}

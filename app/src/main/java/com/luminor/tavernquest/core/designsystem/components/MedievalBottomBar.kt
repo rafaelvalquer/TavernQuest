@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.core.designsystem.components
+import androidx.compose.material.icons.Icons; import androidx.compose.material.icons.filled.*; import androidx.compose.material3.*; import androidx.compose.runtime.Composable; import com.luminor.tavernquest.navigation.MainDestination
+@Composable fun MedievalBottomBar(current:String?,onSelect:(MainDestination)->Unit){ NavigationBar{ MainDestination.entries.forEach{d-> val icon=when(d){MainDestination.TAVERN->Icons.Default.Home;MainDestination.BOARD->Icons.Default.List;MainDestination.JOURNAL->Icons.Default.DateRange;MainDestination.HERO->Icons.Default.Person}; NavigationBarItem(selected=current==d.route,onClick={onSelect(d)},icon={Icon(icon,d.label)},label={Text(d.label)}) } } }

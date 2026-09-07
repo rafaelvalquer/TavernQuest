@@ -1,0 +1,4 @@
+package com.luminor.tavernquest.data.local.database
+import androidx.room.Database; import androidx.room.RoomDatabase; import com.luminor.tavernquest.data.local.database.dao.*; import com.luminor.tavernquest.data.local.database.entity.*
+@Database(entities=[HeroEntity::class,TavernEntity::class,TavernMemberEntity::class,ContractTemplateEntity::class,DailyContractEntity::class,QuestCompletionEntity::class,XpLedgerEntity::class],version=1,exportSchema=true)
+abstract class TavernQuestDatabase:RoomDatabase(){abstract fun heroDao():HeroDao;abstract fun tavernDao():TavernDao;abstract fun tavernMemberDao():TavernMemberDao;abstract fun contractTemplateDao():ContractTemplateDao;abstract fun dailyContractDao():DailyContractDao;abstract fun questCompletionDao():QuestCompletionDao;abstract fun xpLedgerDao():XpLedgerDao}

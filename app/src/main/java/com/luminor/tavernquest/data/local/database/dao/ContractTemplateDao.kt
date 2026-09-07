@@ -1,0 +1,3 @@
+package com.luminor.tavernquest.data.local.database.dao
+import androidx.room.*; import com.luminor.tavernquest.data.local.database.entity.ContractTemplateEntity
+@Dao interface ContractTemplateDao{@Insert(onConflict=OnConflictStrategy.REPLACE) suspend fun insertAll(v:List<ContractTemplateEntity>);@Query("SELECT COUNT(*) FROM contract_template") suspend fun count():Int;@Query("SELECT * FROM contract_template WHERE category=:category AND enabled=1") suspend fun getByCategory(category:String):List<ContractTemplateEntity>;@Query("SELECT * FROM contract_template WHERE enabled=1") suspend fun getEnabled():List<ContractTemplateEntity>}
