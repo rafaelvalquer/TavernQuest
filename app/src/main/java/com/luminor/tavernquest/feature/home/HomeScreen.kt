@@ -24,10 +24,18 @@ fun HomeScreen(onOpenBoard: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
         LinearProgressIndicator(progress = { (state.stats.totalXp % 1000) / 1000f }, modifier = Modifier.fillMaxWidth())
         Text("${state.stats.totalXp} XP")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { TextButton(onClick = vm::previousMonth) { Text("‹") }; Text(state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR")))); TextButton(onClick = vm::nextMonth) { Text("›") } }
-        LazyVerticalGrid(columns = GridCells.Fixed(7), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) { items(state.month.lengthOfMonth()) { index -> val day = index + 1; CheckInDay(day, byDate[state.month.atDay(day).toString()]) } }
+        LazyVerticalGrid(columns = GridCells.Fixed(7), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) { items(state.month.lengthOfMonth()) { index -> val day = index + 1; val date = state.month.atDay(day).toString(); CheckInDay(day, byDate[date], state.selectedDate == date) { vm.selectDate(date) } } }
+        if (state.selectedDate != null) {
+            Text("Check-ins de ${state.selectedDate}", style = MaterialTheme.typography.titleMedium)
+            if (state.checkIns.isEmpty()) Text("Nenhuma atividade registrada neste dia.")
+            state.checkIns.forEach { checkIn -> Text("${checkIn.title} · +${checkIn.xpEarned} XP · ${formatDuration(checkIn.durationSeconds)}") }
+        }
+        Text("Suas Tabernas", style = MaterialTheme.typography.titleMedium)
+        if (state.taverns.isEmpty()) Text("Você ainda não participa de nenhuma Taberna.")
+        state.taverns.forEach { tavern -> Text("${tavern.emblem.title} ${tavern.name}") }
         Button(onClick = onOpenBoard, modifier = Modifier.fillMaxWidth()) { Text("+ Nova missão") }
     }
 }
 @Composable private fun DashboardStat(value: String, label: String) { Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) { Text(value, style = MaterialTheme.typography.titleLarge); Text(label, style = MaterialTheme.typography.labelSmall) } }
-@Composable private fun CheckInDay(day: Int, activity: ActivityDay?) { Box(Modifier.aspectRatio(1f).background(if (activity == null) Color.Transparent else MaterialTheme.colorScheme.primaryContainer), contentAlignment = androidx.compose.ui.Alignment.Center) { Text(if (activity == null) day.toString() else "$day\n⚔${activity.count}") ) } }
+@Composable private fun CheckInDay(day: Int, activity: ActivityDay?, selected: Boolean, onClick: () -> Unit) { androidx.compose.material3.Surface(onClick = onClick, color = if (selected) MaterialTheme.colorScheme.secondaryContainer else if (activity == null) Color.Transparent else MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.aspectRatio(1f)) { Box(contentAlignment = androidx.compose.ui.Alignment.Center) { Text(if (activity == null) day.toString() else "$day\n⚔${activity.count}") ) } } }
 private fun formatDuration(seconds: Long): String = if (seconds < 3600) "${seconds / 60}min" else "${seconds / 3600}h ${(seconds % 3600) / 60}min"

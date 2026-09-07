@@ -1,3 +1,38 @@
 package com.luminor.tavernquest.feature.quest.completion
-import androidx.compose.foundation.layout.*;import androidx.compose.material3.Text;import androidx.compose.runtime.*;import androidx.compose.ui.Modifier;import androidx.compose.ui.unit.dp;import androidx.hilt.navigation.compose.hiltViewModel;import com.luminor.tavernquest.core.designsystem.components.*
-@Composable fun QuestCompletionScreen(vm:QuestCompletionViewModel=hiltViewModel(),onDone:()->Unit,onBack:()->Unit){val s by vm.ui.collectAsState();Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){Text("Concluir: ${s.title}");QuestNotesField(s.notes,vm::notes);ProofPhotoSection(s.photoPath);s.error?.let{Text(it)};GoldButton("Concluir missão",vm::finish,enabled=!s.saving);GoldOutlineButton("Cancelar",onBack)};if(s.completed)QuestCompletedDialog(onDone)}
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.luminor.tavernquest.core.designsystem.components.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+
+@Composable fun QuestCompletionScreen(vm:QuestCompletionViewModel=hiltViewModel(),onDone:()->Unit,onBack:()->Unit){
+    val s by vm.ui.collectAsState()
+    val context=androidx.compose.ui.platform.LocalContext.current
+    val scope=rememberCoroutineScope()
+    var showPhotoOptions by remember { mutableStateOf(false) }
+    val gallery=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){uri->if(uri!=null)scope.launch(Dispatchers.IO){vm.photo(copyPhoto(context,uri))}}
+    Column(Modifier.fillMaxSize().padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+        Text("Concluir: ${s.title}");QuestNotesField(s.notes,vm::notes)
+        ProofPhotoSection(s.photoPath)
+        GoldOutlineButton("Adicionar foto",{showPhotoOptions=true},enabled=!s.saving)
+        s.error?.let{Text(it)};GoldButton("Concluir missão",vm::finish,enabled=!s.saving);GoldOutlineButton("Cancelar",onBack)
+    }
+    if(showPhotoOptions) PhotoSourceDialog(onGallery={showPhotoOptions=false;gallery.launch("image/*")},onDismiss={showPhotoOptions=false})
+    if(s.completed)QuestCompletedDialog(onDone)
+}
+
+private fun copyPhoto(context:Context,uri:Uri):String?=runCatching{
+    val dir=File(context.filesDir,"quest_photos").apply{mkdirs()}
+    val target=File(dir,"quest_${System.currentTimeMillis()}.jpg")
+    context.contentResolver.openInputStream(uri).use { input->requireNotNull(input);target.outputStream().use { output->input.copyTo(output)} }
+    target.absolutePath
+}.getOrNull()

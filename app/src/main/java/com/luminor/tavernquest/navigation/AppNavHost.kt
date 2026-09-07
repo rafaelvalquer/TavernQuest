@@ -10,8 +10,10 @@ import com.luminor.tavernquest.feature.splash.SplashScreen
 import com.luminor.tavernquest.feature.onboarding.welcome.WelcomeScreen
 import com.luminor.tavernquest.feature.onboarding.hero.HeroCreationScreen
 import com.luminor.tavernquest.feature.onboarding.tavern.TavernCreationScreen
- import com.luminor.tavernquest.feature.tavern.TavernScreen
- import com.luminor.tavernquest.feature.tavern.TavernListScreen
+import com.luminor.tavernquest.feature.tavern.TavernScreen
+import com.luminor.tavernquest.feature.tavern.TavernListScreen
+import com.luminor.tavernquest.feature.tavern.JoinTavernScreen
+import com.luminor.tavernquest.feature.tavern.TavernDetailScreen
 import com.luminor.tavernquest.feature.home.HomeScreen
 import com.luminor.tavernquest.feature.board.ContractBoardScreen
 import com.luminor.tavernquest.feature.quest.detail.QuestDetailScreen
@@ -25,10 +27,12 @@ import com.luminor.tavernquest.feature.settings.SettingsScreen
  composable(AppRoute.Splash){ SplashScreen{ route->nav.navigateAndClear(route) } }
  composable(AppRoute.Welcome){ WelcomeScreen{ nav.navigate(AppRoute.HeroCreation) } }
  composable(AppRoute.HeroCreation){ HeroCreationScreen{ nav.navigate(AppRoute.TavernCreation) } }
- composable(AppRoute.TavernCreation){ TavernCreationScreen{ nav.navigateAndClear(AppRoute.Home) } }
- composable(AppRoute.Home){ HomeScreen(onOpenBoard={nav.navigate(AppRoute.Board)}) }
- composable(AppRoute.Tavern){ TavernScreen(onOpenBoard={nav.navigate(AppRoute.Board)},onQuest={nav.navigate(AppRoute.quest(it))}) }
- composable(AppRoute.Taverns){ TavernListScreen() }
+composable(AppRoute.TavernCreation){ TavernCreationScreen{ nav.navigateAndClear(AppRoute.Home) } }
+composable(AppRoute.Home){ HomeScreen(onOpenBoard={nav.navigate(AppRoute.Board)}) }
+composable(AppRoute.Tavern){ TavernScreen(onOpenBoard={nav.navigate(AppRoute.Board)},onQuest={nav.navigate(AppRoute.quest(it))}) }
+ composable(AppRoute.Taverns){ TavernListScreen(onJoin={nav.navigate(AppRoute.JoinTavern)},onCreate={nav.navigate(AppRoute.TavernCreation)},onOpen={nav.navigate(AppRoute.tavernDetail(it))}) }
+ composable(AppRoute.TavernDetail, listOf(navArgument("id"){type=NavType.StringType})){ entry -> TavernDetailScreen(entry.arguments?.getString("id").orEmpty(), onBack={nav.popBackStack()}) }
+composable(AppRoute.JoinTavern){ JoinTavernScreen(onDone={nav.popBackStack()},onBack={nav.popBackStack()}) }
  composable(AppRoute.Board){ ContractBoardScreen(onQuest={nav.navigate(AppRoute.quest(it))}) }
  composable(AppRoute.Journal){ JournalScreen() }
  composable(AppRoute.Ranking){ RankingScreen() }

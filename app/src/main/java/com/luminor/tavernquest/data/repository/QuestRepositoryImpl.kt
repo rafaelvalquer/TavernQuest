@@ -39,6 +39,8 @@ class QuestRepositoryImpl(
             (now - startedAt) / 1000, date, SyncStatus.PENDING_SYNC.name,
         )
         db.questCompletionDao().insert(checkIn)
+        val memberships = db.tavernMemberDao().getForHero(heroId)
+        db.tavernFeedDao().insertAll(memberships.map { member -> TavernFeedEntity(member.tavernId, checkIn.id, now) })
         db.heroDao().updateXp(heroId, c.template.xpReward)
         db.dailyContractDao().updateStatus(contractId, ContractStatus.COMPLETED.name, c.contract.acceptedAt, now)
         db.activityDao().refreshDay(heroId, date)

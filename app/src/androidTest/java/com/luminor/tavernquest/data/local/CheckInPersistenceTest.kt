@@ -9,6 +9,7 @@ import com.luminor.tavernquest.core.util.UuidProvider
 import com.luminor.tavernquest.data.local.database.TavernQuestDatabase
 import com.luminor.tavernquest.data.local.database.entity.*
 import com.luminor.tavernquest.data.repository.QuestRepositoryImpl
+import com.luminor.tavernquest.data.repository.SyncRepositoryImpl
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import org.junit.*
@@ -90,5 +91,46 @@ class CheckInPersistenceTest {
         assertEquals(0, db.xpLedgerDao().getTotalXp("hero"))
         assertNull(db.activityDao().observeStats("hero").first())
         assertEquals("ACCEPTED", db.dailyContractDao().getById("mission")!!.contract.status)
+    }
+
+    @Test fun serverValidationReconcilesOfficialXpAndClearsQueue() = runBlocking {
+        assertTrue(repository().start("mission", "hero"))
+        now += 60_000
+        assertTrue(repository().complete("mission", "hero", "", null))
+        val checkIn = db.questCompletionDao().observeAll().first().single()
+        SyncRepositoryImpl(db).markValidated(checkIn.id, 100)
+        assertEquals(100, db.heroDao().getHero()!!.totalXp)
+        assertEquals(100, db.questCompletionDao().observeAll().first().single().let { it.xpEarned })
+        assertEquals("VALIDATED", db.questCompletionDao().observeAll().first().single().syncStatus)
+        assertEquals(0, db.activityDao().countPending())
+        assertEquals(100, db.activityDao().observeStats("hero").first()!!.totalXp)
+    }
+
+    @Test fun serverRejectionRemovesProvisionalXpAndRefreshesStats() = runBlocking {
+        assertTrue(repository().start("mission", "hero"))
+        now += 60_000
+        assertTrue(repository().complete("mission", "hero", "", null))
+        val checkIn = db.questCompletionDao().observeAll().first().single()
+        SyncRepositoryImpl(db).markRejected(checkIn.id, "invalid")
+        assertEquals(0, db.heroDao().getHero()!!.totalXp)
+        assertEquals("REJECTED", db.questCompletionDao().observeAll().first().single().syncStatus)
+        assertEquals(0, db.activityDao().countPending())
+        assertEquals(0, db.activityDao().observeStats("hero").first()!!.totalXp)
+    }
+
+    @Test fun oneCheckInIsPublishedToEveryCurrentTavernWithoutDuplicatingXp() = runBlocking {
+        db.tavernDao().insert(TavernEntity("tavern-a", "Alcateia", "WOLF", now))
+        db.tavernDao().insert(TavernEntity("tavern-b", "Guerreiros", "BEAR", now))
+        db.tavernMemberDao().insert(TavernMemberEntity("member-a", "tavern-a", "hero", "OWNER", now))
+        db.tavernMemberDao().insert(TavernMemberEntity("member-b", "tavern-b", "hero", "MEMBER", now))
+        assertTrue(repository().start("mission", "hero"))
+        now += 60_000
+        assertTrue(repository().complete("mission", "hero", "", null))
+        val checkIn = db.questCompletionDao().observeAll().first().single()
+        assertEquals(1, db.questCompletionDao().count())
+        assertEquals(80, db.heroDao().getHero()!!.totalXp)
+        assertEquals(1, db.tavernFeedDao().observe("tavern-a").first().size)
+        assertEquals(1, db.tavernFeedDao().observe("tavern-b").first().size)
+        assertEquals(checkIn.id, db.tavernFeedDao().observe("tavern-a").first().single().id)
     }
 }

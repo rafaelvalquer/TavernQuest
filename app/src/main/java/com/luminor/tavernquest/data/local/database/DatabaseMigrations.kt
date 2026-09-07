@@ -48,4 +48,22 @@ object DatabaseMigrations {
                 FROM check_in GROUP BY heroId,activityDate""")
         }
     }
+
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS tavern_feed (
+                tavernId TEXT NOT NULL,
+                checkInId TEXT NOT NULL,
+                publishedAt INTEGER NOT NULL,
+                PRIMARY KEY(tavernId, checkInId),
+                FOREIGN KEY(checkInId) REFERENCES check_in(id) ON DELETE CASCADE
+            )""")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tavern_feed_checkInId ON tavern_feed(checkInId)")
+            // Preserve existing history for memberships that already existed when v3 was installed.
+            db.execSQL("""INSERT OR IGNORE INTO tavern_feed(tavernId, checkInId, publishedAt)
+                SELECT m.tavernId, c.id, c.completedAt
+                FROM tavern_member m INNER JOIN check_in c ON c.heroId = m.heroId
+                WHERE c.completedAt >= m.joinedAt""")
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.luminor.tavernquest.data.repository
 
 import com.luminor.tavernquest.data.local.database.dao.ActivityDao
+import com.luminor.tavernquest.data.mapper.toCheckIn
 import com.luminor.tavernquest.domain.model.*
 import com.luminor.tavernquest.domain.repository.DashboardRepository
 import kotlinx.coroutines.flow.Flow
@@ -13,4 +14,5 @@ class DashboardRepositoryImpl(private val dao: ActivityDao) : DashboardRepositor
     override fun observeMonth(heroId: String, from: String, until: String): Flow<List<ActivityDay>> = dao.observeMonth(heroId, from, until).map { days ->
         days.map { ActivityDay(it.date, it.checkInCount, it.totalXp, it.activeSeconds, it.primaryCategory?.let { value -> runCatching { ContractCategory.valueOf(value) }.getOrNull() }) }
     }
+    override fun observeDay(heroId: String, date: String): Flow<List<CheckIn>> = dao.observeDay(heroId, date).map { values -> values.map { it.toCheckIn() } }
 }
