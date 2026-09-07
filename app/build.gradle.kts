@@ -6,6 +6,10 @@ plugins {
     alias(libs.plugins.hilt.android)
 }
 
+// Keep offline/local development working until the Firebase project is created.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+if (file("google-services.json").exists()) apply(plugin = "com.google.firebase.crashlytics")
+
 android {
     namespace = "com.luminor.tavernquest"
     compileSdk = 35
@@ -52,8 +56,19 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.hilt.work)
+    implementation(libs.work.runtime.ktx)
     ksp(libs.hilt.compiler)
+    ksp(libs.hilt.work.compiler)
     implementation(libs.coroutines.android)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
+    implementation(libs.play.services.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

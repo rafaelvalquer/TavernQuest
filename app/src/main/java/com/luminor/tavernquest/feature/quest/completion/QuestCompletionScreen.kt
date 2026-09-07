@@ -33,6 +33,7 @@ import java.io.File
 private fun copyPhoto(context:Context,uri:Uri):String?=runCatching{
     val dir=File(context.filesDir,"quest_photos").apply{mkdirs()}
     val target=File(dir,"quest_${System.currentTimeMillis()}.jpg")
-    context.contentResolver.openInputStream(uri).use { input->requireNotNull(input);target.outputStream().use { output->input.copyTo(output)} }
+    val input=requireNotNull(context.contentResolver.openInputStream(uri))
+    input.use { source->target.outputStream().use { output->source.copyTo(output)} }
     target.absolutePath
 }.getOrNull()

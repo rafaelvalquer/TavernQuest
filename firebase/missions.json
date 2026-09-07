@@ -1,0 +1,452 @@
+[
+  {
+    "id": "home_community_1",
+    "title": "Organize um cômodo",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "home_community_2",
+    "title": "Ligue para alguém importante",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "home_community_3",
+    "title": "Faça uma tarefa doméstica",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "home_community_4",
+    "title": "Brinque com a família",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "home_community_5",
+    "title": "Ajude alguém em casa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "home_community_6",
+    "title": "Prepare uma refeição",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "home_community_7",
+    "title": "Separe itens para doação",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "home_community_8",
+    "title": "Arrume sua mesa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "home_community_9",
+    "title": "Converse sem celular por 20 minutos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "home_community_10",
+    "title": "Resolva uma pequena pendência da casa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "HOME_COMMUNITY",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "craft_1",
+    "title": "Avance 25 minutos em um projeto",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "craft_2",
+    "title": "Crie algo pequeno",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "craft_3",
+    "title": "Organize seu próximo passo",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "craft_4",
+    "title": "Corrija uma pendência",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "craft_5",
+    "title": "Escreva uma ideia de projeto",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "craft_6",
+    "title": "Faça um protótipo simples",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "craft_7",
+    "title": "Melhore algo que você já criou",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "craft_8",
+    "title": "Reserve foco sem distrações",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "craft_9",
+    "title": "Documente seu progresso",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "craft_10",
+    "title": "Finalize uma tarefa criativa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "CRAFT",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "exploration_1",
+    "title": "Conheça um caminho diferente",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "exploration_2",
+    "title": "Caminhe ao ar livre",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "exploration_3",
+    "title": "Visite um lugar novo no bairro",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "exploration_4",
+    "title": "Observe o pôr do sol",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "exploration_5",
+    "title": "Faça uma pequena trilha",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "exploration_6",
+    "title": "Descubra um comércio local",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "exploration_7",
+    "title": "Fotografe algo interessante",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "exploration_8",
+    "title": "Passe 20 minutos fora de casa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "exploration_9",
+    "title": "Explore uma praça próxima",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "exploration_10",
+    "title": "Mude sua rota habitual",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "EXPLORATION",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_1",
+    "title": "Caminhe por 20 minutos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_2",
+    "title": "Faça 15 agachamentos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_3",
+    "title": "Alongue-se por 10 minutos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_4",
+    "title": "Beba água ao longo do dia",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_5",
+    "title": "Organize seu horário de sono",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_6",
+    "title": "Suba escadas por 10 minutos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_7",
+    "title": "Faça uma pausa ativa",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_8",
+    "title": "Treine mobilidade",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_9",
+    "title": "Complete um treino curto",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "strength_discipline_10",
+    "title": "Planeje sua atividade física",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "STRENGTH_DISCIPLINE",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_1",
+    "title": "Leia 10 páginas",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_2",
+    "title": "Estude por 25 minutos",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_3",
+    "title": "Anote três aprendizados",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_4",
+    "title": "Assista uma aula curta",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_5",
+    "title": "Revise um conteúdo antigo",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_6",
+    "title": "Aprenda cinco palavras novas",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_7",
+    "title": "Resolva um problema desafiador",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_8",
+    "title": "Leia um artigo técnico",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "NORMAL",
+    "xpReward": 35,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_9",
+    "title": "Faça um resumo de estudo",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "HARD",
+    "xpReward": 50,
+    "enabled": true
+  },
+  {
+    "id": "wisdom_10",
+    "title": "Ensine algo que aprendeu",
+    "description": "Conclua esta missão e registre seu progresso.",
+    "category": "WISDOM",
+    "difficulty": "COMMON",
+    "xpReward": 20,
+    "enabled": true
+  }
+]

@@ -10,6 +10,8 @@ data class UserStatsEntity(
     val totalXp: Int,
     val activeDays: Int,
     val activeSeconds: Long,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
 )
 
 @Entity(tableName = "user_activity_day", primaryKeys = ["heroId", "date"])

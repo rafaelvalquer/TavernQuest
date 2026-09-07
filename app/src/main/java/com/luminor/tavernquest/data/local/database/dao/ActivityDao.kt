@@ -54,8 +54,19 @@ interface ActivityDao {
         FROM check_in WHERE heroId=:heroId AND activityDate=:date AND syncStatus!='REJECTED' GROUP BY heroId, activityDate""")
     suspend fun refreshDay(heroId: String, date: String)
 
-    @Query("""INSERT OR REPLACE INTO user_stats
-        SELECT :heroId, COUNT(*), COALESCE(SUM(xpEarned),0), COUNT(DISTINCT activityDate), COALESCE(SUM(durationSeconds),0)
+    @Query("DELETE FROM user_activity_day WHERE heroId=:heroId AND date=:date")
+    suspend fun clearDay(heroId: String, date: String)
+
+    @Query("""INSERT OR REPLACE INTO user_stats(heroId,totalCheckIns,totalXp,activeDays,activeSeconds,currentStreak,longestStreak)
+        SELECT :heroId, COUNT(*), COALESCE(SUM(xpEarned),0), COUNT(DISTINCT activityDate), COALESCE(SUM(durationSeconds),0),
+        COALESCE((SELECT currentStreak FROM user_stats WHERE heroId=:heroId),0),
+        COALESCE((SELECT longestStreak FROM user_stats WHERE heroId=:heroId),0)
         FROM check_in WHERE heroId=:heroId AND syncStatus!='REJECTED'""")
     suspend fun refreshStats(heroId: String)
+
+    @Query("SELECT DISTINCT activityDate FROM check_in WHERE heroId=:heroId AND syncStatus!='REJECTED' ORDER BY activityDate")
+    suspend fun activityDates(heroId: String): List<String>
+
+    @Query("UPDATE user_stats SET currentStreak=:currentStreak,longestStreak=:longestStreak WHERE heroId=:heroId")
+    suspend fun updateStreaks(heroId: String, currentStreak: Int, longestStreak: Int)
 }

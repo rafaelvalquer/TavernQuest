@@ -66,4 +66,35 @@ object DatabaseMigrations {
                 WHERE c.completedAt >= m.joinedAt""")
         }
     }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE hero ADD COLUMN userId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("UPDATE hero SET userId = id WHERE userId = ''")
+        }
+    }
+
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE user_stats ADD COLUMN currentStreak INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE user_stats ADD COLUMN longestStreak INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE check_in ADD COLUMN missionId TEXT NOT NULL DEFAULT ''")
+            db.execSQL("""UPDATE check_in SET missionId = COALESCE(
+                (SELECT templateId FROM daily_contract WHERE daily_contract.id = check_in.dailyContractId),
+                dailyContractId) WHERE missionId = ''""")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_check_in_missionId ON check_in(missionId)")
+        }
+    }
+
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE tavern ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE tavern ADD COLUMN isPrivate INTEGER NOT NULL DEFAULT 1")
+        }
+    }
 }

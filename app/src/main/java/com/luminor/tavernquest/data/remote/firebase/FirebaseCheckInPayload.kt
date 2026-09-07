@@ -19,9 +19,9 @@ data class FirebaseCheckInPayload(
     val status: String = "PENDING_SYNC",
 ) {
     companion object {
-        fun from(checkIn: CheckIn) = FirebaseCheckInPayload(
+        fun from(checkIn: CheckIn, userId: String = checkIn.heroId) = FirebaseCheckInPayload(
             id = checkIn.id,
-            userId = checkIn.heroId,
+            userId = userId,
             missionId = checkIn.missionId,
             missionTitle = checkIn.title,
             category = checkIn.category.name,

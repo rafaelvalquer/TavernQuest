@@ -8,6 +8,7 @@ import com.luminor.tavernquest.data.local.database.entity.*
 import com.luminor.tavernquest.domain.model.ContractStatus
 import com.luminor.tavernquest.domain.model.SyncStatus
 import com.luminor.tavernquest.domain.repository.QuestRepository
+import com.luminor.tavernquest.domain.rules.StreakCalculator
 import java.time.Instant
 import java.time.ZoneId
 
@@ -16,6 +17,7 @@ class QuestRepositoryImpl(
     private val ids: UuidProvider,
     private val time: DateProvider = SystemDateProvider(),
 ) : QuestRepository {
+    private val streaks = StreakCalculator()
     override suspend fun start(contractId: String, heroId: String): Boolean = db.withTransaction {
         val mission = db.dailyContractDao().getById(contractId)?.contract ?: return@withTransaction false
         if (mission.heroId != heroId || mission.status != ContractStatus.ACCEPTED.name) return@withTransaction false
@@ -34,7 +36,7 @@ class QuestRepositoryImpl(
         val ledger = XpLedgerEntity(ids.newId(), heroId, c.template.xpReward, "QUEST", contractId, now)
         if (db.xpLedgerDao().insert(ledger) == -1L) return@withTransaction false
         val checkIn = CheckInEntity(
-            ids.newId(), contractId, heroId, notes.trim(), photoPath, now,
+            ids.newId(), contractId, c.template.id, heroId, notes.trim(), photoPath, now,
             c.template.title, c.template.category, c.template.xpReward, startedAt,
             (now - startedAt) / 1000, date, SyncStatus.PENDING_SYNC.name,
         )
@@ -43,9 +45,16 @@ class QuestRepositoryImpl(
         db.tavernFeedDao().insertAll(memberships.map { member -> TavernFeedEntity(member.tavernId, checkIn.id, now) })
         db.heroDao().updateXp(heroId, c.template.xpReward)
         db.dailyContractDao().updateStatus(contractId, ContractStatus.COMPLETED.name, c.contract.acceptedAt, now)
+        db.activityDao().clearDay(heroId, date)
         db.activityDao().refreshDay(heroId, date)
-        db.activityDao().refreshStats(heroId)
+        refreshStats(heroId)
         db.activityDao().enqueue(PendingSyncEntity(checkIn.id, now))
         true
+    }
+
+    private suspend fun refreshStats(heroId: String) {
+        db.activityDao().refreshStats(heroId)
+        val dates = db.activityDao().activityDates(heroId).mapNotNull { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }.toSet()
+        db.activityDao().updateStreaks(heroId, streaks.calculate(dates, time.today()), streaks.longest(dates))
     }
 }

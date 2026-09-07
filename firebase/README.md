@@ -9,4 +9,12 @@ firebase use tavernquest-app
 firebase deploy --only firestore:rules,storage,functions
 ```
 
+Depois de autenticar o Firebase CLI, publique o catálogo oficial de missões com `node functions/seedMissions.js` a partir desta pasta. O arquivo `missions.json` é gerado a partir das mesmas 50 seeds usadas pelo app Android.
+
+O app já contém os clientes Android para Authentication, Firestore, Storage, FCM, Crashlytics e Analytics. O plugin Google Services só é aplicado quando `app/google-services.json` existe; sem ele, o modo offline continua disponível e a sincronização retorna para a fila.
+
 O cliente publica um documento em `checkins/{checkInId}` com `status: "PENDING_SYNC"`. A Function `validateCheckIn` confere a missão, o XP oficial e a associação do jogador às Tabernas. O documento original é atualizado para `VALIDATED` e cada Taberna recebe apenas uma referência em `taverns/{tavernId}/feed/{checkInId}`.
+
+As Functions também notificam os membros existentes quando uma pessoa entra em uma Taberna e notificam o autor quando um check-in é validado.
+
+Criar, entrar ou sair de uma Taberna grava a mesma associação em `taverns/{tavernId}` e `members/{uid}`. Ao criar, o app também publica `invites/{codigo}` para que outro dispositivo encontre a Taberna pelo código sem precisar de acesso prévio ao grupo. Essas gravações são best-effort: a cópia local permanece disponível quando o usuário está offline ou ainda não configurou o Firebase.

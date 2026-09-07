@@ -37,8 +37,20 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   }
 
   const userId = checkIn.userId;
+  const duplicateSnapshot = await db.collection('checkins')
+    .where('userId', '==', userId)
+    .where('missionId', '==', checkIn.missionId)
+    .where('status', 'in', ['PENDING_SYNC', 'VALIDATED'])
+    .get();
+  const duplicate = duplicateSnapshot.docs.find((doc) => doc.id !== snapshot.id);
+  if (duplicate) {
+    await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
+    return;
+  }
   const memberships = await db.collectionGroup('members').where('userId', '==', userId).get();
   const batch = db.batch();
+  const missionLockRef = db.doc(`missionLocks/${encodeURIComponent(userId)}_${encodeURIComponent(checkIn.missionId)}`);
+  batch.create(missionLockRef, { userId, missionId: checkIn.missionId, checkInId: snapshot.id, createdAt: admin.firestore.FieldValue.serverTimestamp() });
   batch.update(checkInRef, { status: 'VALIDATED', xpEarned: officialXp, validatedAt: admin.firestore.FieldValue.serverTimestamp() });
   const statsRef = db.doc(`userStats/${userId}`);
   batch.set(statsRef, {
@@ -51,6 +63,9 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   memberships.forEach((member) => {
     const tavernRef = member.ref.parent.parent;
     if (!tavernRef) return;
+    const joinedAt = Number(member.data().joinedAt || 0);
+    // A member only contributes to a tavern from the moment they joined it.
+    if (joinedAt > completedAt) return;
     const feedRef = tavernRef.collection('feed').doc(snapshot.id);
     batch.set(feedRef, { checkInId: snapshot.id, userId, createdAt: checkIn.createdAt || admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     for (const period of periodKeys(completedAt)) {
@@ -64,7 +79,15 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
       }, { merge: true });
     }
   });
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (error) {
+    if (error.code === 6 || error.code === 'already-exists') {
+      await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
+      return;
+    }
+    throw error;
+  }
 
   // Notifications are sent only after the authoritative write succeeds.
   const tokens = [];
@@ -78,4 +101,30 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
       data: { checkInId: snapshot.id, type: 'CHECK_IN_VALIDATED' },
     });
   }
+});
+
+exports.notifyTavernMemberJoined = onDocumentCreated('taverns/{tavernId}/members/{memberId}', async (event) => {
+  const membership = event.data;
+  if (!membership) return;
+  const joinedUserId = membership.data().userId;
+  const tavernId = event.params.tavernId;
+  const db = admin.firestore();
+  const [tavern, members] = await Promise.all([
+    db.doc(`taverns/${tavernId}`).get(),
+    db.collection(`taverns/${tavernId}/members`).get(),
+  ]);
+  const recipients = members.docs
+    .map((member) => member.data().userId)
+    .filter((userId) => typeof userId === 'string' && userId !== joinedUserId);
+  if (recipients.length === 0) return;
+  const users = await Promise.all(recipients.map((userId) => db.doc(`users/${userId}`).get()));
+  const tokens = users.flatMap((user) => user.exists && Array.isArray(user.data().fcmTokens)
+    ? user.data().fcmTokens.filter((token) => typeof token === 'string')
+    : []);
+  if (tokens.length === 0) return;
+  await admin.messaging().sendEachForMulticast({
+    tokens: [...new Set(tokens)],
+    notification: { title: 'Novo aventureiro', body: `Um novo membro entrou em ${tavern.exists ? tavern.data().name : 'sua Taberna'}.` },
+    data: { tavernId, type: 'TAVERN_MEMBER_JOINED' },
+  });
 });

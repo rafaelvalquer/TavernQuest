@@ -20,6 +20,6 @@ fun TavernListScreen(onJoin: () -> Unit = {}, onCreate: () -> Unit = {}, onOpen:
             Button(onClick = onCreate, modifier = Modifier.weight(1f)) { Text("Criar") }
             OutlinedButton(onClick = onJoin, modifier = Modifier.weight(1f)) { Text("Entrar") }
         }
-        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(taverns, key = { it.id }) { tavern -> Card(onClick = { onOpen(tavern.id) }, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) { Text(tavern.name, style = MaterialTheme.typography.titleLarge); Text("Código de convite: ${TavernInviteCode.fromId(tavern.id)}") } } } }
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) { items(taverns, key = { it.id }) { tavern -> Card(onClick = { onOpen(tavern.id) }, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) { Text(tavern.name, style = MaterialTheme.typography.titleLarge); tavern.description.takeIf { it.isNotBlank() }?.let { Text(it) }; Text(if (tavern.isPrivate) "Privada · código: ${TavernInviteCode.fromId(tavern.id)}" else "Pública") } } } }
     }
 }

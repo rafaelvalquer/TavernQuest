@@ -4,11 +4,13 @@ O projeto será criado como `tavernquest-app` (ou `tavernquest-prod` se o ID est
 
 Depois da criação, registrar o app Android com o package `com.luminor.tavernquest`, baixar `google-services.json` para `app/` e ativar:
 
-- Authentication: e-mail/senha e Google;
+- Authentication: e-mail/senha e Google (o client ID web é lido do `google-services.json`);
 - Firestore: `users`, `userStats`, `missions`, `checkins`, `taverns/{tavernId}/members`, `feed` e `leaderboards`;
 - Storage para comprovantes;
 - Functions para validar o XP, impedir duplicidade e fazer fan-out do mesmo `checkInId` em várias Tabernas;
 - FCM, Crashlytics e Analytics.
+
+Quando `app/google-services.json` existir, o Gradle aplica automaticamente o plugin Google Services. Sem esse arquivo, o app continua iniciando em modo offline e as telas de autenticação informam que a configuração Firebase está ausente.
 
 Tokens FCM devem ser armazenados em `users/{userId}.fcmTokens`. A Function só envia a notificação depois do commit que valida o check-in e atualiza os rankings.
 

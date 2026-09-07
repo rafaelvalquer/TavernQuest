@@ -46,8 +46,16 @@ service cloud.firestore {
       }
     }
     match /invites/{code} {
-      allow read: if signedIn();
-      allow write: if false;
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.code == code
+        && request.resource.data.tavernId is string;
+      allow update, delete: if false;
+    }
+    match /missionLocks/{lockId} {
+      allow read, write: if false;
     }
   }
 }

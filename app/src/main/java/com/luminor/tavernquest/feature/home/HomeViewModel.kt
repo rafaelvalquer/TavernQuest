@@ -26,4 +26,5 @@ class HomeViewModel @Inject constructor(private val heroes: HeroRepository, priv
     fun nextMonth() { month.update { it.plusMonths(1) } }
     fun selectDate(date: String) { selectedDate.value = date }
     fun levelOf(xp: Int) = level.calculate(xp).level
+    fun progressOf(xp: Int) = level.calculate(xp)
 }

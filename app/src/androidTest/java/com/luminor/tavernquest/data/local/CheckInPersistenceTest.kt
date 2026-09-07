@@ -55,7 +55,8 @@ class CheckInPersistenceTest {
         assertEquals(3120L, checkIn.durationSeconds)
         assertEquals("PENDING_SYNC", checkIn.syncStatus)
         assertEquals("Caminhar", checkIn.title)
-        assertEquals(UserStatsEntity("hero", 1, 80, 1, 3120), db.activityDao().observeStats("hero").first())
+        assertEquals("walk", checkIn.missionId)
+        assertEquals(UserStatsEntity("hero", 1, 80, 1, 3120, 1, 1), db.activityDao().observeStats("hero").first())
     }
 
     @Test fun timerSurvivesDatabaseReopenAndDoesNotRestart() = runBlocking {
@@ -116,6 +117,7 @@ class CheckInPersistenceTest {
         assertEquals("REJECTED", db.questCompletionDao().observeAll().first().single().syncStatus)
         assertEquals(0, db.activityDao().countPending())
         assertEquals(0, db.activityDao().observeStats("hero").first()!!.totalXp)
+        assertTrue(db.activityDao().observeMonth("hero", checkIn.activityDate, java.time.LocalDate.parse(checkIn.activityDate).plusDays(1).toString()).first().isEmpty())
     }
 
     @Test fun oneCheckInIsPublishedToEveryCurrentTavernWithoutDuplicatingXp() = runBlocking {

@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.map
 
 class DashboardRepositoryImpl(private val dao: ActivityDao) : DashboardRepository {
     override fun observeStats(heroId: String): Flow<DashboardStats> = dao.observeStats(heroId).map {
-        DashboardStats(it?.totalCheckIns ?: 0, it?.totalXp ?: 0, it?.activeDays ?: 0, it?.activeSeconds ?: 0)
+        DashboardStats(it?.totalCheckIns ?: 0, it?.totalXp ?: 0, it?.activeDays ?: 0, it?.activeSeconds ?: 0, it?.currentStreak ?: 0, it?.longestStreak ?: 0)
     }
     override fun observeMonth(heroId: String, from: String, until: String): Flow<List<ActivityDay>> = dao.observeMonth(heroId, from, until).map { days ->
-        days.map { ActivityDay(it.date, it.checkInCount, it.totalXp, it.activeSeconds, it.primaryCategory?.let { value -> runCatching { ContractCategory.valueOf(value) }.getOrNull() }) }
+        days.map { ActivityDay(it.date, it.checkInCount, it.totalXp, it.activeSeconds, it.primaryCategory?.let { value -> runCatching { ContractCategory.valueOf(value) }.getOrNull() }, it.thumbnailUrl) }
     }
     override fun observeDay(heroId: String, date: String): Flow<List<CheckIn>> = dao.observeDay(heroId, date).map { values -> values.map { it.toCheckIn() } }
 }

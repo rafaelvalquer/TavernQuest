@@ -5,6 +5,8 @@ data class DashboardStats(
     val totalXp: Int = 0,
     val activeDays: Int = 0,
     val activeSeconds: Long = 0,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
 )
 
 data class ActivityDay(
@@ -13,4 +15,5 @@ data class ActivityDay(
     val xp: Int,
     val activeSeconds: Long,
     val category: ContractCategory?,
+    val thumbnailPath: String? = null,
 )
