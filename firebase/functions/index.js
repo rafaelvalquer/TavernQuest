@@ -1,6 +1,8 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
+const missionCatalog = require('./missions.json');
+const DEPLOY_REVISION = 2;
 
 admin.initializeApp();
 setGlobalOptions({ maxInstances: 10, region: 'southamerica-east1' });
@@ -12,6 +14,30 @@ function periodKeys(timestamp) {
   const week = Math.ceil((((date - firstDay) / 86400000) + firstDay.getUTCDay() + 1) / 7);
   return [`week-${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`, `month-${month}`, 'all'];
 }
+
+// The catalog is server-owned. Creating a user profile is the first online
+// action in the app, so it also makes a fresh project ready for check-ins.
+exports.seedMissionCatalog = onDocumentCreated('users/{userId}', async () => {
+  void DEPLOY_REVISION;
+  const db = admin.firestore();
+  const catalogRef = db.doc('_system/missionCatalog');
+  const catalog = await catalogRef.get();
+  if (catalog.exists) return;
+
+  const batch = db.batch();
+  missionCatalog.forEach((mission) => {
+    batch.set(db.doc(`missions/${mission.id}`), {
+      ...mission,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+  batch.set(catalogRef, {
+    version: 1,
+    missionCount: missionCatalog.length,
+    seededAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  await batch.commit();
+});
 
 exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event) => {
   const snapshot = event.data;

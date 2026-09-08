@@ -8,5 +8,7 @@
 .externalNativeBuild
 .cxx
 app/build/
+app/google-services.json
+firebase/functions/node_modules/
 .gradle-local/
 .tmp/

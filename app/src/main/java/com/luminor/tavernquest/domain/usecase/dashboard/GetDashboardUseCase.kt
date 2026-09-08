@@ -15,4 +15,5 @@ class GetDashboardUseCase @Inject constructor(private val heroes: HeroRepository
             dashboard.observeStats(hero.id), dashboard.observeMonth(hero.id, from, until), ::DashboardSnapshot,
         )
     }
+    fun observeDay(heroId: String, date: String) = dashboard.observeDay(heroId, date)
 }

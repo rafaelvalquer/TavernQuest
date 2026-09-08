@@ -27,7 +27,7 @@ Aplicativo Android nativo em Kotlin + Jetpack Compose, com funcionamento offline
 Abra a pasta `TavernQuest` no Android Studio, sincronize o Gradle e execute em dispositivo/emulador Android 8+ (API 26+).
 
 ## Firebase
-Crie o projeto `tavernquest-app`, registre o package `com.luminor.tavernquest`, coloque `google-services.json` em `app/` e siga [firebase/README.md](firebase/README.md). Não versionar credenciais.
+O projeto Firebase é `tavernquest-7684e` e o package `com.luminor.tavernquest` já está registrado. Coloque o `google-services.json` baixado do Console em `app/` e siga [firebase/README.md](firebase/README.md). Não versionar credenciais.
 
 ## Estado da entrega
 O fluxo local e os testes Room de check-in/migração estão implementados. O deploy Firebase e a validação com duas contas online precisam ser executados com uma conta Google autenticada.

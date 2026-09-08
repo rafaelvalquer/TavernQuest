@@ -1,8 +1,8 @@
 # Firebase do TavernQuest
 
-O projeto será criado como `tavernquest-app` (ou `tavernquest-prod` se o ID estiver ocupado). A criação não pode ser automatizada até que uma conta Google seja autenticada no console; a aba do Firebase foi deixada aberta para o dono da conta.
+O projeto criado é `tavernquest-7684e`, na conta autenticada no Firebase Console. O Firestore padrão está em `southamerica-east1`, e Authentication por e-mail/senha e Google já estão ativos.
 
-Depois da criação, registrar o app Android com o package `com.luminor.tavernquest`, baixar `google-services.json` para `app/` e ativar:
+O app Android `com.luminor.tavernquest` já está registrado. Baixe `google-services.json` atualizado para `app/`; o SHA-1 de debug também já está registrado. Ainda é necessário ativar Storage e implantar Functions, o que exige um plano Firebase com faturamento.
 
 - Authentication: e-mail/senha e Google (o client ID web é lido do `google-services.json`);
 - Firestore: `users`, `userStats`, `missions`, `checkins`, `taverns/{tavernId}/members`, `feed` e `leaderboards`;

@@ -2,10 +2,11 @@
 
 O diretório contém a configuração versionável do backend. Ele não inclui credenciais nem `google-services.json`.
 
-Depois de criar o projeto `tavernquest-app` no console:
+O projeto Firebase provisionado é `tavernquest-7684e`. Depois de colocar o
+arquivo de configuração Android no módulo `app/`:
 
 ```powershell
-firebase use tavernquest-app
+firebase use tavernquest-7684e
 firebase deploy --only firestore:rules,storage,functions
 ```
 

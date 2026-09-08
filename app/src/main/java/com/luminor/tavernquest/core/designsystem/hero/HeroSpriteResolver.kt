@@ -15,5 +15,6 @@ object HeroSpriteResolver {
         HeroClass.ARTISAN to HeroAppearance.FEMININE -> R.drawable.hero_artisan_female
         HeroClass.GUARDIAN to HeroAppearance.MASCULINE -> R.drawable.hero_guardian_male
         HeroClass.GUARDIAN to HeroAppearance.FEMININE -> R.drawable.hero_guardian_female
+        else -> R.drawable.hero_warrior_male
     }
 }

@@ -2,7 +2,7 @@ package com.luminor.tavernquest.usecase
 
 import com.luminor.tavernquest.core.time.DateProvider
 import com.luminor.tavernquest.core.util.UuidProvider
-import com.luminor.tavernquest.domain.model.GameSettings
+import com.luminor.tavernquest.domain.repository.GameSettings
 import com.luminor.tavernquest.domain.model.Hero
 import com.luminor.tavernquest.domain.model.HeroAppearance
 import com.luminor.tavernquest.domain.model.HeroClass
