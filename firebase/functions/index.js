@@ -15,11 +15,7 @@ function periodKeys(timestamp) {
   return [`week-${date.getUTCFullYear()}-W${String(week).padStart(2, '0')}`, `month-${month}`, 'all'];
 }
 
-// The catalog is server-owned. Creating a user profile is the first online
-// action in the app, so it also makes a fresh project ready for check-ins.
-exports.seedMissionCatalog = onDocumentCreated('users/{userId}', async () => {
-  void DEPLOY_REVISION;
-  const db = admin.firestore();
+async function ensureMissionCatalog(db) {
   const catalogRef = db.doc('_system/missionCatalog');
   const catalog = await catalogRef.get();
   if (catalog.exists) return;
@@ -37,6 +33,13 @@ exports.seedMissionCatalog = onDocumentCreated('users/{userId}', async () => {
     seededAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   await batch.commit();
+}
+
+// The catalog is server-owned. Creating a user profile is the first online
+// action in the app, so it also makes a fresh project ready for check-ins.
+exports.seedMissionCatalog = onDocumentCreated('users/{userId}', async () => {
+  void DEPLOY_REVISION;
+  await ensureMissionCatalog(admin.firestore());
 });
 
 exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event) => {
@@ -46,6 +49,7 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   if (checkIn.status !== 'PENDING_SYNC') return;
 
   const db = admin.firestore();
+  await ensureMissionCatalog(db);
   const checkInRef = snapshot.ref;
   const missionRef = db.doc(`missions/${checkIn.missionId}`);
   const mission = await missionRef.get();

@@ -2,15 +2,18 @@
 
 O diretório contém a configuração versionável do backend. Ele não inclui credenciais nem `google-services.json`.
 
-O projeto Firebase provisionado é `tavernquest-7684e`. Depois de colocar o
-arquivo de configuração Android no módulo `app/`:
+O projeto Firebase provisionado é `tavernquest-7684e`. O arquivo de
+configuração Android já foi obtido pela CLI e está em `app/google-services.json`
+(ignorado pelo Git). Para repetir o deploy:
 
 ```powershell
 firebase use tavernquest-7684e
-firebase deploy --only firestore:rules,storage,functions
+firebase deploy --only firestore,storage,functions --project tavernquest-7684e
 ```
 
-Depois de autenticar o Firebase CLI, publique o catálogo oficial de missões com `node functions/seedMissions.js` a partir desta pasta. O arquivo `missions.json` é gerado a partir das mesmas 50 seeds usadas pelo app Android.
+`seedMissionCatalog` inicializa automaticamente as 50 missões oficiais na primeira
+criação de perfil em `users/{uid}`. As Functions usam Node.js 22 e têm política de
+limpeza de imagens de build após sete dias.
 
 O app já contém os clientes Android para Authentication, Firestore, Storage, FCM, Crashlytics e Analytics. O plugin Google Services só é aplicado quando `app/google-services.json` existe; sem ele, o modo offline continua disponível e a sincronização retorna para a fila.
 

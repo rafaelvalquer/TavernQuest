@@ -27,6 +27,7 @@ enum class TavernDetailTab { FEED, RANKING, MEMBERS }
 enum class TavernRankingPeriod { WEEK, MONTH, ALL }
 data class TavernDetailUiState(val tavern: Tavern? = null, val memberCount: Int = 0, val feed: List<CheckIn> = emptyList(), val members: List<TavernMember> = emptyList(), val ranking: List<RankingEntry> = emptyList(), val tab: TavernDetailTab = TavernDetailTab.FEED, val period: TavernRankingPeriod = TavernRankingPeriod.WEEK, val leaving: Boolean = false, val left: Boolean = false)
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TavernDetailViewModel @Inject constructor(
     private val taverns: TavernRepository,
@@ -40,7 +41,7 @@ class TavernDetailViewModel @Inject constructor(
     private val left = MutableStateFlow(false)
     private val content = combine(tavernId, tab, period) { id, selectedTab, selectedPeriod -> Triple(id, selectedTab, selectedPeriod) }.flatMapLatest { (id, selectedTab, selectedPeriod) ->
         if (id == null) flowOf(TavernDetailUiState())
-        else combine(flow { emit(taverns.getById(id)) }, flow { emit(taverns.members(id)) }, feed.observe(id), rankings.observeTavern(id, periodStart(selectedPeriod))) { tavern, members, entries, ranking -> TavernDetailUiState(tavern, members.size, entries, members, ranking, selectedTab, selectedPeriod) }
+        else combine(flow { emit(taverns.getById(id)) }, taverns.observeMembers(id), feed.observe(id), rankings.observeTavern(id, periodStart(selectedPeriod))) { tavern, members, entries, ranking -> TavernDetailUiState(tavern, members.size, entries, members, ranking, selectedTab, selectedPeriod) }
     }
     val ui: StateFlow<TavernDetailUiState> = combine(content, left) { state, hasLeft -> state.copy(left = hasLeft) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TavernDetailUiState())
 

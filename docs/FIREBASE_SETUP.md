@@ -2,7 +2,7 @@
 
 O projeto criado é `tavernquest-7684e`, na conta autenticada no Firebase Console. O Firestore padrão está em `southamerica-east1`, e Authentication por e-mail/senha e Google já estão ativos.
 
-O app Android `com.luminor.tavernquest` já está registrado. Baixe `google-services.json` atualizado para `app/`; o SHA-1 de debug também já está registrado. Ainda é necessário ativar Storage e implantar Functions, o que exige um plano Firebase com faturamento.
+O app Android `com.luminor.tavernquest` já está registrado e o `google-services.json` oficial está instalado localmente em `app/` (ele permanece ignorado pelo Git). O SHA-1 de debug também já está registrado. Storage, Firestore e Cloud Functions estão ativos no plano Blaze.
 
 - Authentication: e-mail/senha e Google (o client ID web é lido do `google-services.json`);
 - Firestore: `users`, `userStats`, `missions`, `checkins`, `taverns/{tavernId}/members`, `feed` e `leaderboards`;
@@ -20,4 +20,4 @@ O payload remoto deve usar `FirebaseCheckInPayload`: ele envia `xpEarned: 0` de 
 
 Não adicionar credenciais, `google-services.json` ou chaves de Functions ao controle de versão.
 
-As regras e a Function versionadas em `firebase/` devem ser revisadas no console antes do primeiro deploy de produção.
+As regras versionadas em `firebase/` foram publicadas. As Functions de produção usam Node.js 22 em `southamerica-east1`: `seedMissionCatalog`, `validateCheckIn` e `notifyTavernMemberJoined`.

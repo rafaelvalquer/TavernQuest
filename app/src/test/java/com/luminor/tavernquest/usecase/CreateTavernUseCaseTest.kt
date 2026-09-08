@@ -60,6 +60,7 @@ class CreateTavernUseCaseTest {
         override suspend fun getById(id: String): Tavern? = null
         override suspend fun memberCount(tavernId: String) = 0
         override suspend fun members(tavernId: String) = emptyList<TavernMember>()
+        override fun observeMembers(tavernId: String): Flow<List<TavernMember>> = emptyFlow()
         override fun observe(): Flow<Tavern?> = emptyFlow()
         override fun observeForHero(heroId: String): Flow<List<Tavern>> = emptyFlow()
         override suspend fun getByCode(code: String): Tavern? = null
