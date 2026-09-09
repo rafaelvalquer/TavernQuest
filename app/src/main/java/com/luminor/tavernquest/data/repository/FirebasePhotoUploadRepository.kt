@@ -13,7 +13,9 @@ class FirebasePhotoUploadRepository(private val storage: FirebaseStorage?) : Pho
         return runCatching {
             val reference = firebase.reference.child("users/$userId/checkins/$checkInId/photo.jpg")
             await(reference.putFile(Uri.fromFile(File(localPath))))
-            await(reference.downloadUrl).toString()
+            // Persist only the Storage path. A download URL is a bearer link and must
+            // not be copied into shared Firestore documents.
+            reference.path
         }
     }
 

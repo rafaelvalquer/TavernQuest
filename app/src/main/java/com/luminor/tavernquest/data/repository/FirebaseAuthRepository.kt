@@ -2,6 +2,7 @@ package com.luminor.tavernquest.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.functions.FirebaseFunctions
 import com.luminor.tavernquest.domain.model.AuthUser
 import com.luminor.tavernquest.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.awaitClose
@@ -10,7 +11,10 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-class FirebaseAuthRepository(private val auth: FirebaseAuth?) : AuthRepository {
+class FirebaseAuthRepository(
+    private val auth: FirebaseAuth?,
+    private val functions: FirebaseFunctions?,
+) : AuthRepository {
     override val currentUser: Flow<AuthUser?> = callbackFlow {
         val firebase = auth
         if (firebase == null) {
@@ -28,6 +32,12 @@ class FirebaseAuthRepository(private val auth: FirebaseAuth?) : AuthRepository {
     override suspend fun loginWithGoogleIdToken(idToken: String): Result<AuthUser> {
         val firebase = auth ?: return Result.failure(missingConfiguration())
         return runCatching { await(firebase.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null))).user?.toDomain() ?: error("Usuário não retornado.") }
+    }
+
+    override suspend fun ensureAccount(): Result<Unit> = runCatching {
+        requireNotNull(auth?.currentUser) { "Entre com Google antes de continuar." }
+        val callable = requireNotNull(functions) { "Firebase Functions não configurado." }
+        await(callable.getHttpsCallable("ensureUserAccount").call(mapOf("timezone" to java.util.TimeZone.getDefault().id)))
     }
 
     override fun logout() { auth?.signOut() }

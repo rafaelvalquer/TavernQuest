@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 interface TavernRemoteRepository {
-    suspend fun create(tavern: Tavern, owner: TavernMember): Result<Unit>
+    suspend fun create(tavern: Tavern, owner: TavernMember): Result<Tavern>
     suspend fun findByInviteCode(code: String): Result<Tavern?>
     suspend fun join(tavern: Tavern, member: TavernMember): Result<Unit>
     suspend fun leave(tavernId: String): Result<Unit>

@@ -7,20 +7,10 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/taverns/$(tavernId)/members/$(request.auth.uid))
         && get(/databases/$(database)/documents/taverns/$(tavernId)/members/$(request.auth.uid)).data.status == 'ACTIVE';
     }
-    function tavernOwner(tavernId) {
-      return signedIn()
-        && getAfter(/databases/$(database)/documents/taverns/$(tavernId)).data.ownerId == request.auth.uid;
-    }
-    function validInvite(tavernId, code) {
-      return code is string
-        && exists(/databases/$(database)/documents/invites/$(code))
-        && get(/databases/$(database)/documents/invites/$(code)).data.tavernId == tavernId;
-    }
-
     match /users/{uid} {
       allow read: if owner(uid);
       allow create: if false;
-      allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmTokens']);
+      allow update: if false;
       allow delete: if false;
     }
     match /userStats/{uid} {

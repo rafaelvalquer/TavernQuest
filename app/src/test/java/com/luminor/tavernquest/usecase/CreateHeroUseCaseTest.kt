@@ -23,6 +23,7 @@ class CreateHeroUseCaseTest {
         val auth = object : AuthRepository {
             override val currentUser = flowOf(AuthUser("firebase-user", "r@example.com", "Rafael"))
             override suspend fun loginWithGoogleIdToken(idToken: String) = error("unused")
+            override suspend fun ensureAccount() = Result.success(Unit)
             override fun logout() = Unit
         }
         CreateHeroUseCase(repo, object : UuidProvider { override fun newId() = "hero-id" }, fixedTime, auth)("  Rafael  ", HeroClass.MAGE, HeroAppearance.FEMININE)

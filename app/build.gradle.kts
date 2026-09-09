@@ -6,9 +6,38 @@ plugins {
     alias(libs.plugins.hilt.android)
 }
 
+import java.util.Properties
+
+val releaseProperties = Properties().apply {
+    val source = file("release.properties")
+    if (source.isFile) source.inputStream().use(::load)
+}
+fun releaseProperty(name: String): String? = providers.gradleProperty(name).orNull
+    ?: System.getenv("TAVERNQUEST_${name.uppercase()}")
+    ?: releaseProperties.getProperty(name)
+val releaseStoreFile = releaseProperty("storeFile")
+val releaseStorePassword = releaseProperty("storePassword")
+val releaseKeyAlias = releaseProperty("keyAlias")
+val releaseKeyPassword = releaseProperty("keyPassword")
+
 // Keep offline/local development working until the Firebase project is created.
 if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
 if (file("google-services.json").exists()) apply(plugin = "com.google.firebase.crashlytics")
+
+// A production artifact without Firebase would silently disable login and sync.
+// Debug remains optional for local UI work, while every release task fails early.
+tasks.configureEach {
+    if (name.contains("Release", ignoreCase = true)) {
+        doFirst {
+            check(file("google-services.json").isFile) {
+                "app/google-services.json é obrigatório para gerar uma versão release."
+            }
+            check(listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }) {
+                "Configure a assinatura release em app/release.properties ou nas variáveis TAVERNQUEST_STORE_FILE, TAVERNQUEST_STORE_PASSWORD, TAVERNQUEST_KEY_ALIAS e TAVERNQUEST_KEY_PASSWORD."
+            }
+        }
+    }
+}
 
 android {
     namespace = "com.luminor.tavernquest"
@@ -21,6 +50,19 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "com.luminor.tavernquest.HiltTestRunner"
+    }
+    signingConfigs {
+        if (listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") { signingConfig = signingConfigs.findByName("release") }
     }
     buildFeatures { compose = true; buildConfig = true }
     sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
@@ -69,6 +111,8 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.functions)
+    implementation(libs.firebase.appcheck.debug)
+    implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)

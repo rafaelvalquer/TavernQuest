@@ -1,0 +1,6 @@
+# Copie para app/release.properties e preencha apenas localmente.
+# Este arquivo e a keystore são ignorados pelo Git.
+storeFile=../keys/tavernquest-release.jks
+storePassword=SUBSTITUA_POR_UMA_SENHA_FORTE
+keyAlias=tavernquest
+keyPassword=SUBSTITUA_POR_UMA_SENHA_FORTE

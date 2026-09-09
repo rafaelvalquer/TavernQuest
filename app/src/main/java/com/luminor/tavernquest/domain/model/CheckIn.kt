@@ -16,4 +16,6 @@ data class CheckIn(
     val notes: String?,
     val proofPhotoUrl: String?,
     val syncStatus: SyncStatus,
+    /** Stable daily-contract occurrence; mission IDs are reusable on later days. */
+    val occurrenceId: String = id,
 )

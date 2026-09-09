@@ -6,6 +6,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.luminor.tavernquest.data.local.database.dao.HeroDao
 import com.luminor.tavernquest.data.mapper.toDomain
 import com.luminor.tavernquest.data.mapper.toEntity
+import com.luminor.tavernquest.data.remote.firebase.epochMillis
 import com.luminor.tavernquest.domain.model.Hero
 import com.luminor.tavernquest.domain.model.HeroAppearance
 import com.luminor.tavernquest.domain.model.HeroClass
@@ -39,7 +40,8 @@ class FirebaseHeroRepository(
     override suspend fun get(): Hero? {
         val user = auth?.currentUser ?: return null
         val db = firestore ?: return null
-        val hero = await(db.collection("users").document(user.uid).get()).toHeroOrNull(user.uid)
+        val stats = await(db.collection("userStats").document(user.uid).get()).getLong("totalXp") ?: 0L
+        val hero = await(db.collection("users").document(user.uid).get()).toHeroOrNull(user.uid, stats)
         if (hero != null) dao.insert(hero.toEntity())
         return hero
     }
@@ -47,13 +49,23 @@ class FirebaseHeroRepository(
     override fun observe(): Flow<Hero?> = callbackFlow {
         val user = auth?.currentUser ?: run { dao.deleteAll(); trySend(null); close(); return@callbackFlow }
         val db = firestore ?: run { trySend(null); close(); return@callbackFlow }
-        val listener = db.collection("users").document(user.uid).addSnapshotListener { value, error ->
-            if (error != null) { trySend(null); return@addSnapshotListener }
-            val hero = value?.toHeroOrNull(user.uid)
+        var profile: com.google.firebase.firestore.DocumentSnapshot? = null
+        var statsXp = 0L
+        fun publish() {
+            val hero = profile?.toHeroOrNull(user.uid, statsXp)
             if (hero != null) launch { dao.insert(hero.toEntity()) }
             trySend(hero)
         }
-        awaitClose { listener.remove() }
+        val profileListener = db.collection("users").document(user.uid).addSnapshotListener { value, error ->
+            if (error != null) { trySend(null); return@addSnapshotListener }
+            profile = value
+            publish()
+        }
+        val statsListener = db.collection("userStats").document(user.uid).addSnapshotListener { value, _ ->
+            statsXp = value?.getLong("totalXp") ?: 0L
+            if (profile != null) publish()
+        }
+        awaitClose { profileListener.remove(); statsListener.remove() }
     }
 
     override suspend fun addXp(heroId: String, amount: Int) {
@@ -61,7 +73,7 @@ class FirebaseHeroRepository(
         dao.updateXp(heroId, amount)
     }
 
-    private fun com.google.firebase.firestore.DocumentSnapshot.toHeroOrNull(uid: String): Hero? {
+    private fun com.google.firebase.firestore.DocumentSnapshot.toHeroOrNull(uid: String, totalXp: Long): Hero? {
         if (!exists()) return null
         val name = getString("name")?.trim().orEmpty()
         if (name.isBlank()) return null
@@ -71,8 +83,8 @@ class FirebaseHeroRepository(
             name = name,
             heroClass = getString("heroClass")?.let { runCatching { HeroClass.valueOf(it) }.getOrNull() } ?: HeroClass.WARRIOR,
             appearance = getString("appearance")?.let { runCatching { HeroAppearance.valueOf(it) }.getOrNull() } ?: HeroAppearance.MASCULINE,
-            totalXp = (getLong("totalXp") ?: 0L).toInt(),
-            createdAt = getLong("createdAt") ?: 0L,
+            totalXp = totalXp.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
+            createdAt = epochMillis("createdAt") ?: 0L,
         )
     }
 

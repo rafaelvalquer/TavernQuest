@@ -20,8 +20,25 @@ class AuthViewModel @Inject constructor(private val auth: AuthRepository, privat
     fun googleToken(idToken: String) = viewModelScope.launch {
         _ui.update { it.copy(loading = true, error = null) }
         val result = auth.loginWithGoogleIdToken(idToken)
-        val needsHero = result.isSuccess && heroes.get() == null
-        result.fold(onSuccess = { _ui.update { it.copy(loading = false, authenticated = true, needsHero = needsHero) } }, onFailure = { error -> _ui.update { current -> current.copy(loading = false, error = error.message ?: "Não foi possível entrar com Google.") } })
+        result.fold(onSuccess = {
+            auth.ensureAccount().fold(
+                onSuccess = {
+                    val needsHero = heroes.get() == null
+                    _ui.update { state -> state.copy(loading = false, authenticated = true, needsHero = needsHero) }
+                },
+                onFailure = { error -> _ui.update { state -> state.copy(loading = false, error = friendlyError(error)) } },
+            )
+        }, onFailure = { error -> _ui.update { current -> current.copy(loading = false, error = friendlyError(error)) } })
     }
     fun googleUnavailable(message: String = "Configure o google-services.json para entrar com Google.") { _ui.update { it.copy(loading = false, error = message) } }
+
+    private fun friendlyError(error: Throwable): String {
+        val message = error.message.orEmpty()
+        return when {
+            message.contains("network", ignoreCase = true) || message.contains("unavailable", ignoreCase = true) -> "Não foi possível conectar agora. Verifique sua internet e tente novamente."
+            message.contains("cancel", ignoreCase = true) -> "A entrada com Google foi cancelada."
+            message.contains("Firebase não configurado", ignoreCase = true) -> "Este aplicativo ainda não está configurado para entrar com Google."
+            else -> "Não foi possível entrar com Google. Tente novamente."
+        }
+    }
 }

@@ -21,19 +21,20 @@ class FirebaseCheckInSyncTransport(
         return runCatching {
             val photoResult = checkIn.proofPhotoUrl?.let { path -> photos.upload(path, user.uid, checkIn.id) }
             if (photoResult != null && photoResult.isFailure) return@runCatching CheckInSyncResult.Retry(photoResult.exceptionOrNull()?.message ?: "Falha no upload da foto.")
-            val photoUrl = photoResult?.getOrNull()
+            val photoStoragePath = photoResult?.getOrNull()
             val payload = FirebaseCheckInPayload.from(checkIn, user.uid)
             val values = mapOf(
                 "id" to payload.id,
                 "userId" to payload.userId,
                 "missionId" to payload.missionId,
+                "occurrenceId" to payload.occurrenceId,
                 "missionTitle" to payload.missionTitle,
                 "category" to payload.category,
                 "startedAt" to payload.startedAt,
                 "completedAt" to payload.completedAt,
                 "durationSeconds" to payload.durationSeconds,
                 "notes" to payload.notes,
-                "photoUrl" to photoUrl,
+                "photoStoragePath" to photoStoragePath,
                 "createdAt" to payload.createdAt,
                 "xpEarned" to 0,
                 "status" to payload.status,

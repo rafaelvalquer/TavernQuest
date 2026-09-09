@@ -1,4 +1,5 @@
 package com.luminor.tavernquest.app
+import com.luminor.tavernquest.BuildConfig
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -11,9 +12,10 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.WorkManager
 import com.luminor.tavernquest.data.sync.PendingCheckInWorker
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -28,6 +30,12 @@ class TavernQuestApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        runCatching {
+            FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+                if (BuildConfig.DEBUG) DebugAppCheckProviderFactory.getInstance()
+                else PlayIntegrityAppCheckProviderFactory.getInstance(),
+            )
+        }
         val request = OneTimeWorkRequestBuilder<PendingCheckInWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
@@ -40,8 +48,9 @@ class TavernQuestApplication : Application(), Configuration.Provider {
             FirebaseAuth.getInstance().addAuthStateListener { auth ->
                 val user = auth.currentUser ?: return@addAuthStateListener
                 FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-                    FirebaseFirestore.getInstance().collection("users").document(user.uid)
-                        .set(mapOf("fcmTokens" to FieldValue.arrayUnion(token)), SetOptions.merge())
+                    FirebaseFunctions.getInstance("southamerica-east1")
+                        .getHttpsCallable("registerDeviceToken")
+                        .call(mapOf("token" to token))
                 }
             }
         }
