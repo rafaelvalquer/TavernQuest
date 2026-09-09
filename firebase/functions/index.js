@@ -78,46 +78,55 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
     return;
   }
   const memberships = await db.collectionGroup('members').where('userId', '==', userId).get();
-  const batch = db.batch();
-  const missionLockRef = db.doc(`missionLocks/${encodeURIComponent(userId)}_${encodeURIComponent(checkIn.missionId)}`);
-  batch.create(missionLockRef, { userId, missionId: checkIn.missionId, checkInId: snapshot.id, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-  batch.update(checkInRef, { status: 'VALIDATED', xpEarned: officialXp, validatedAt: admin.firestore.FieldValue.serverTimestamp() });
-  const statsRef = db.doc(`userStats/${userId}`);
-  batch.set(statsRef, {
-    userId,
-    totalXp: admin.firestore.FieldValue.increment(officialXp),
-    totalCheckIns: admin.firestore.FieldValue.increment(1),
-    activeSeconds: admin.firestore.FieldValue.increment(Math.max(0, durationSeconds)),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  }, { merge: true });
-  memberships.forEach((member) => {
+  const activityDate = new Date(completedAt).toISOString().slice(0, 10);
+  const eligibleTaverns = memberships.docs.map((member) => {
     const tavernRef = member.ref.parent.parent;
-    if (!tavernRef) return;
     const joinedAt = Number(member.data().joinedAt || 0);
-    // A member only contributes to a tavern from the moment they joined it.
-    if (joinedAt > completedAt) return;
-    const feedRef = tavernRef.collection('feed').doc(snapshot.id);
-    batch.set(feedRef, { checkInId: snapshot.id, userId, createdAt: checkIn.createdAt || admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    for (const period of periodKeys(completedAt)) {
-      const entryRef = tavernRef.collection('leaderboards').doc(period).collection('entries').doc(userId);
-      batch.set(entryRef, {
-        userId,
-        xp: admin.firestore.FieldValue.increment(officialXp),
-        checkIns: admin.firestore.FieldValue.increment(1),
-        lastActivityDate: new Date(completedAt).toISOString().slice(0, 10),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+    return tavernRef && joinedAt <= completedAt ? tavernRef : null;
+  }).filter(Boolean);
+  const missionLockRef = db.doc(`missionLocks/${encodeURIComponent(userId)}_${encodeURIComponent(checkIn.missionId)}`);
+  const statsRef = db.doc(`userStats/${userId}`);
+  const userDayRef = db.doc(`userActivityDays/${encodeURIComponent(userId)}_${activityDate}`);
+  const tavernDays = eligibleTaverns.map((tavernRef) => tavernRef.collection('activityDays').doc(`${userId}_${activityDate}`));
+  const validated = await db.runTransaction(async (transaction) => {
+    // Read every lock before writing. Firestore retries the transaction if another
+    // check-in reaches the same mission or the same activity day concurrently.
+    const [missionLock, userDay, ...tavernDaySnapshots] = await Promise.all(
+      [missionLockRef, userDayRef, ...tavernDays].map((ref) => transaction.get(ref)),
+    );
+    if (missionLock.exists) {
+      transaction.update(checkInRef, { status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
+      return false;
     }
+    transaction.create(missionLockRef, { userId, missionId: checkIn.missionId, checkInId: snapshot.id, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    transaction.update(checkInRef, { status: 'VALIDATED', xpEarned: officialXp, validatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    if (!userDay.exists) transaction.create(userDayRef, { userId, date: activityDate, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    transaction.set(statsRef, {
+      userId,
+      totalXp: admin.firestore.FieldValue.increment(officialXp),
+      totalCheckIns: admin.firestore.FieldValue.increment(1),
+      activeSeconds: admin.firestore.FieldValue.increment(Math.max(0, durationSeconds)),
+      ...(userDay.exists ? {} : { activeDays: admin.firestore.FieldValue.increment(1) }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    eligibleTaverns.forEach((tavernRef, index) => {
+      const isNewActiveDay = !tavernDaySnapshots[index].exists;
+      if (isNewActiveDay) transaction.create(tavernDays[index], { userId, date: activityDate, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      transaction.set(tavernRef.collection('feed').doc(snapshot.id), { checkInId: snapshot.id, userId, createdAt: checkIn.createdAt || admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      for (const period of periodKeys(completedAt)) {
+        transaction.set(tavernRef.collection('leaderboards').doc(period).collection('entries').doc(userId), {
+          userId,
+          xp: admin.firestore.FieldValue.increment(officialXp),
+          checkIns: admin.firestore.FieldValue.increment(1),
+          ...(isNewActiveDay ? { activeDays: admin.firestore.FieldValue.increment(1) } : {}),
+          lastActivityDate: activityDate,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+    });
+    return true;
   });
-  try {
-    await batch.commit();
-  } catch (error) {
-    if (error.code === 6 || error.code === 'already-exists') {
-      await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
-      return;
-    }
-    throw error;
-  }
+  if (!validated) return;
 
   // Notifications are sent only after the authoritative write succeeds.
   const tokens = [];

@@ -43,7 +43,7 @@ composable(AppRoute.JoinTavern){ JoinTavernScreen(onDone={nav.popBackStack()},on
  composable(AppRoute.Journal){ JournalScreen() }
  composable(AppRoute.Ranking){ RankingScreen() }
  composable(AppRoute.Hero){ HeroScreen() }
- composable(AppRoute.Settings){ SettingsScreen() }
+ composable(AppRoute.Settings){ SettingsScreen(onGameReset={ nav.navigateAndClear(AppRoute.Welcome) }) }
  composable(AppRoute.QuestDetail, listOf(navArgument("id"){type=NavType.StringType})){ QuestDetailScreen(onBack={nav.popBackStack()},onComplete={nav.navigate(AppRoute.complete(it))}) }
  composable(AppRoute.QuestCompletion, listOf(navArgument("id"){type=NavType.StringType})){ QuestCompletionScreen(onDone={nav.navigateAndClear(AppRoute.Home)},onBack={nav.popBackStack()}) }
  composable(AppRoute.CompletionDetail){ CompletionDetailScreen() }

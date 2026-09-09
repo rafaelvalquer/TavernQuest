@@ -75,7 +75,10 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
         val user = auth?.currentUser ?: run { trySend(emptyList()); close(); return@callbackFlow }
         val registration = db.collectionGroup("members").whereEqualTo("userId", user.uid)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) { close(error); return@addSnapshotListener }
+                // A listener denial (for example, while signed out) is not fatal to the
+                // offline experience. Keep the local Room data visible instead of letting
+                // the callbackFlow exception cancel a UI collector on the main thread.
+                if (error != null) { trySend(emptyList()); close(); return@addSnapshotListener }
                 launch {
                     val taverns = snapshot?.documents.orEmpty().mapNotNull { membership ->
                         val tavernId = membership.reference.parent.parent?.id ?: return@mapNotNull null
@@ -90,10 +93,11 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
 
     override fun observeMembers(tavernId: String): Flow<List<TavernMember>> = callbackFlow {
         val db = firestore ?: run { trySend(emptyList()); close(); return@callbackFlow }
+        auth?.currentUser ?: run { trySend(emptyList()); close(); return@callbackFlow }
         val registration = db.collection("taverns").document(tavernId).collection("members")
             .orderBy("joinedAt", com.google.firebase.firestore.Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) { close(error); return@addSnapshotListener }
+                if (error != null) { trySend(emptyList()); close(); return@addSnapshotListener }
                 trySend(snapshot?.documents.orEmpty().map { member ->
                     TavernMember(
                         id = member.id,
@@ -109,11 +113,12 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
 
     override fun observeFeed(tavernId: String): Flow<List<CheckIn>> = callbackFlow {
         val db = firestore ?: run { trySend(emptyList()); close(); return@callbackFlow }
+        auth?.currentUser ?: run { trySend(emptyList()); close(); return@callbackFlow }
         val registration = db.collection("taverns").document(tavernId).collection("feed")
             .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .limit(50)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) { close(error); return@addSnapshotListener }
+                if (error != null) { trySend(emptyList()); close(); return@addSnapshotListener }
                 launch {
                     val checkIns = snapshot?.documents.orEmpty().mapNotNull { publication ->
                         val checkIn = runCatching { await(db.collection("checkins").document(publication.id).get()) }.getOrNull()
@@ -127,11 +132,16 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
 
     override fun observeRanking(tavernId: String, periodStart: Long?): Flow<List<RankingEntry>> = callbackFlow {
         val db = firestore ?: run { trySend(emptyList()); close(); return@callbackFlow }
+        auth?.currentUser ?: run { trySend(emptyList()); close(); return@callbackFlow }
         val period = periodKey(periodStart)
         val registration = db.collection("taverns").document(tavernId).collection("leaderboards").document(period)
-            .collection("entries").orderBy("xp", com.google.firebase.firestore.Query.Direction.DESCENDING).limit(100)
+            .collection("entries")
+            .orderBy("xp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .orderBy("activeDays", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .orderBy("checkIns", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(100)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) { close(error); return@addSnapshotListener }
+                if (error != null) { trySend(emptyList()); close(); return@addSnapshotListener }
                 trySend(snapshot?.documents.orEmpty().map { entry ->
                     RankingEntry(
                         heroId = entry.getString("userId") ?: entry.id,

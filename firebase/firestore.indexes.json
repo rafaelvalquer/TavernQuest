@@ -8,6 +8,15 @@
         { "fieldPath": "missionId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "xp", "order": "DESCENDING" },
+        { "fieldPath": "activeDays", "order": "DESCENDING" },
+        { "fieldPath": "checkIns", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

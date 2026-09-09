@@ -37,7 +37,10 @@ service cloud.firestore {
     }
     match /taverns/{tavernId} {
       allow read: if member(tavernId);
-      allow create: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.id == tavernId
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.inviteCode is string;
       allow update: if tavernOwner(tavernId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'emblem']);
       allow delete: if false;
