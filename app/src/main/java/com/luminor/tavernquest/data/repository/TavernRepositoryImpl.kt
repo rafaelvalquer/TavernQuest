@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 class TavernRepositoryImpl(private val db:TavernQuestDatabase, private val remote: com.luminor.tavernquest.domain.repository.TavernRemoteRepository? = null):TavernRepository {
-    override suspend fun create(tavern:Tavern,owner:TavernMember){ db.withTransaction { db.tavernDao().insert(tavern.toEntity()); db.tavernMemberDao().insert(TavernMemberEntity(owner.id,owner.tavernId,owner.heroId,owner.role.name,owner.joinedAt)) }; remote?.create(tavern,owner) }
+    override suspend fun create(tavern:Tavern,owner:TavernMember){ remote?.create(tavern,owner)?.getOrThrow(); db.withTransaction { db.tavernDao().insert(tavern.toEntity()); db.tavernMemberDao().insert(TavernMemberEntity(owner.id,owner.tavernId,owner.heroId,owner.role.name,owner.joinedAt)) } }
     override suspend fun get()=db.tavernDao().getTavern()?.toDomain()
     override suspend fun getById(id:String)=db.tavernDao().getById(id)?.toDomain()
     override suspend fun memberCount(tavernId:String)=db.tavernMemberDao().getMembers(tavernId).size
@@ -33,6 +33,6 @@ class TavernRepositoryImpl(private val db:TavernQuestDatabase, private val remot
         db.tavernDao().insert(remoteTavern.toEntity())
         return remoteTavern
     }
-    override suspend fun join(tavernId:String,member:TavernMember):Boolean { val tavern=db.tavernDao().getById(tavernId)?.toDomain() ?: return false; val joined=db.withTransaction { if(db.tavernMemberDao().getForHero(tavernId,member.heroId)!=null)return@withTransaction true;db.tavernMemberDao().insert(TavernMemberEntity(member.id,tavernId,member.heroId,TavernRole.MEMBER.name,member.joinedAt));true }; if(joined) remote?.join(tavern,member); return joined }
+    override suspend fun join(tavernId:String,member:TavernMember):Boolean { val tavern=db.tavernDao().getById(tavernId)?.toDomain() ?: return false; remote?.join(tavern,member)?.getOrElse { return false }; return db.withTransaction { if(db.tavernMemberDao().getForHero(tavernId,member.heroId)!=null)return@withTransaction true;db.tavernMemberDao().insert(TavernMemberEntity(member.id,tavernId,member.heroId,TavernRole.MEMBER.name,member.joinedAt));true } }
     override suspend fun leave(tavernId:String,heroId:String){ db.tavernMemberDao().leave(tavernId,heroId); remote?.leave(tavernId) }
 }

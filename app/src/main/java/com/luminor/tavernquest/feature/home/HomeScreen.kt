@@ -39,7 +39,11 @@ fun HomeScreen(onOpenBoard: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
         LinearProgressIndicator(progress = { progress.progress }, modifier = Modifier.fillMaxWidth())
         Text("${progress.xpInLevel} / ${progress.xpForNextLevel} XP")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { TextButton(onClick = vm::previousMonth) { Text("‹") }; Text(state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("pt", "BR")))); TextButton(onClick = vm::nextMonth) { Text("›") } }
-        LazyVerticalGrid(columns = GridCells.Fixed(7), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) { items(state.month.lengthOfMonth()) { index -> val day = index + 1; val date = state.month.atDay(day).toString(); CheckInDay(day, byDate[date], state.selectedDate == date) { vm.selectDate(date) } } }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) { listOf("DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB").forEach { Text(it, style = MaterialTheme.typography.labelSmall) } }
+        LazyVerticalGrid(columns = GridCells.Fixed(7), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+            items(state.month.atDay(1).dayOfWeek.value % 7) { Box(Modifier.aspectRatio(1f)) }
+            items(state.month.lengthOfMonth()) { index -> val day = index + 1; val date = state.month.atDay(day).toString(); CheckInDay(day, byDate[date], state.selectedDate == date) { vm.selectDate(date) } }
+        }
         if (state.selectedDate != null) {
             Text("Check-ins de ${state.selectedDate}", style = MaterialTheme.typography.titleMedium)
             if (state.checkIns.isEmpty()) Text("Nenhuma atividade registrada neste dia.")

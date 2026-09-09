@@ -27,9 +27,8 @@ import com.luminor.tavernquest.feature.ranking.RankingScreen
 import com.luminor.tavernquest.feature.settings.SettingsScreen
 @Composable fun AppNavHost(nav:NavHostController, modifier:Modifier=Modifier){ NavHost(nav,AppRoute.Splash,modifier){
  composable(AppRoute.Splash){ SplashScreen{ route->nav.navigateAndClear(route) } }
- composable(AppRoute.Welcome){ WelcomeScreen(onContinue={ nav.navigate(AppRoute.HeroCreation) },onLogin={ nav.navigate(AppRoute.Login) }) }
- composable(AppRoute.Login){ AuthScreen(register=false,onAuthenticated={ needsHero -> nav.navigateAndClear(if(needsHero) AppRoute.HeroCreation else AppRoute.Home)},onBack={nav.popBackStack()},onRegister={nav.navigate(AppRoute.Register)}) }
- composable(AppRoute.Register){ AuthScreen(register=true,onAuthenticated={ _ -> nav.navigateAndClear(AppRoute.HeroCreation)},onBack={nav.popBackStack()}) }
+ composable(AppRoute.Welcome){ AuthScreen(onAuthenticated={ needsHero -> nav.navigateAndClear(if(needsHero) AppRoute.HeroCreation else AppRoute.Home) }) }
+ composable(AppRoute.Login){ AuthScreen(onAuthenticated={ needsHero -> nav.navigateAndClear(if(needsHero) AppRoute.HeroCreation else AppRoute.Home) }) }
  composable(AppRoute.HeroCreation){ HeroCreationScreen{ nav.navigate(AppRoute.TavernChoice) } }
  composable(AppRoute.TavernChoice){ TavernChoiceScreen(onCreate={nav.navigate(AppRoute.TavernCreation)},onJoin={nav.navigate(AppRoute.OnboardingJoinTavern)},onSkip={nav.navigateAndClear(AppRoute.Home)}) }
 composable(AppRoute.TavernCreation){ TavernCreationScreen{ nav.navigateAndClear(AppRoute.Home) } }

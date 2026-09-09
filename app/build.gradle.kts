@@ -68,7 +68,10 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
-    implementation(libs.play.services.auth)
+    implementation(libs.firebase.functions)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -22,8 +22,8 @@ class HomeViewModel @Inject constructor(private val heroes: HeroRepository, priv
         if (hero == null) emptyFlow<HomeUiState>()
         else combine(dashboard.observe(current.atDay(1).toString(), current.plusMonths(1).atDay(1).toString()), selected?.let { dashboard.observeDay(hero.id, it) } ?: flowOf(emptyList<CheckIn>()), tavernRepository.observeForHero(hero.id)) { snapshot, checkIns, taverns -> HomeUiState(hero, snapshot.stats, snapshot.days, selected, checkIns, current, taverns) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
-    fun previousMonth() { month.update { it.minusMonths(1) } }
-    fun nextMonth() { month.update { it.plusMonths(1) } }
+    fun previousMonth() { month.update { it.minusMonths(1) }; selectedDate.value = null }
+    fun nextMonth() { month.update { it.plusMonths(1) }; selectedDate.value = null }
     fun selectDate(date: String) { selectedDate.value = date }
     fun levelOf(xp: Int) = level.calculate(xp).level
     fun progressOf(xp: Int) = level.calculate(xp)

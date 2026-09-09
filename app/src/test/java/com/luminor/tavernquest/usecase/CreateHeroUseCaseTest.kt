@@ -22,14 +22,12 @@ class CreateHeroUseCaseTest {
         val repo = CapturingHeroRepository()
         val auth = object : AuthRepository {
             override val currentUser = flowOf(AuthUser("firebase-user", "r@example.com", "Rafael"))
-            override suspend fun register(email: String, password: String, displayName: String?) = error("unused")
-            override suspend fun login(email: String, password: String) = error("unused")
             override suspend fun loginWithGoogleIdToken(idToken: String) = error("unused")
             override fun logout() = Unit
         }
         CreateHeroUseCase(repo, object : UuidProvider { override fun newId() = "hero-id" }, fixedTime, auth)("  Rafael  ", HeroClass.MAGE, HeroAppearance.FEMININE)
 
-        assertEquals(Hero("hero-id", "Rafael", HeroAppearance.FEMININE, HeroClass.MAGE, 0, 1234L, "firebase-user"), repo.created)
+        assertEquals(Hero("firebase-user", "Rafael", HeroAppearance.FEMININE, HeroClass.MAGE, 0, 1234L, "firebase-user"), repo.created)
     }
 
     private class CapturingHeroRepository : HeroRepository {

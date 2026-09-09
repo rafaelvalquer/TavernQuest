@@ -1,7 +1,6 @@
 package com.luminor.tavernquest.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.luminor.tavernquest.domain.model.AuthUser
 import com.luminor.tavernquest.domain.repository.AuthRepository
@@ -25,19 +24,6 @@ class FirebaseAuthRepository(private val auth: FirebaseAuth?) : AuthRepository {
         awaitClose { firebase.removeAuthStateListener(listener) }
     }
 
-    override suspend fun register(email: String, password: String, displayName: String?): Result<AuthUser> {
-        val firebase = auth ?: return Result.failure(missingConfiguration())
-        return runCatching {
-            val result = await(firebase.createUserWithEmailAndPassword(email.trim(), password))
-            if (!displayName.isNullOrBlank()) result.user?.updateProfile(com.google.firebase.auth.UserProfileChangeRequest.Builder().setDisplayName(displayName.trim()).build())?.let { await(it) }
-            result.user?.toDomain() ?: error("O Firebase não retornou o usuário criado.")
-        }
-    }
-
-    override suspend fun login(email: String, password: String): Result<AuthUser> {
-        val firebase = auth ?: return Result.failure(missingConfiguration())
-        return runCatching { await(firebase.signInWithEmailAndPassword(email.trim(), password)).user?.toDomain() ?: error("Usuário não retornado.") }
-    }
 
     override suspend fun loginWithGoogleIdToken(idToken: String): Result<AuthUser> {
         val firebase = auth ?: return Result.failure(missingConfiguration())
@@ -56,4 +42,4 @@ class FirebaseAuthRepository(private val auth: FirebaseAuth?) : AuthRepository {
     private fun missingConfiguration() = IllegalStateException("Firebase não configurado: adicione google-services.json em app/.")
 }
 
-private fun FirebaseUser.toDomain() = AuthUser(uid, email, displayName)
+private fun com.google.firebase.auth.FirebaseUser.toDomain() = AuthUser(uid, email, displayName)
