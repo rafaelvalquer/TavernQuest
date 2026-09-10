@@ -9,9 +9,13 @@
 .cxx
 app/build/
 app/google-services.json
+app/src/*/google-services.json
 app/release.properties
 app/*.jks
 app/*.keystore
+app/keys/
 firebase/functions/node_modules/
+firebase/tests/node_modules/
+firebase/tests/firestore-debug.log
 .gradle-local/
 .tmp/

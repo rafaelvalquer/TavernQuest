@@ -119,6 +119,15 @@ function timestampToMillis(value) {
   return typeof value === 'number' ? value : 0;
 }
 
+async function rejectCheckIn(checkInRef, checkIn, reason) {
+  await checkInRef.update({ status: 'REJECTED', rejectionReason: reason });
+  const path = typeof checkIn.photoStoragePath === 'string' ? checkIn.photoStoragePath : '';
+  const expectedPrefix = `users/${checkIn.userId}/checkins/${checkInRef.id}/`;
+  if (path.startsWith(expectedPrefix)) {
+    await admin.storage().bucket().file(path).delete({ ignoreNotFound: true }).catch(() => undefined);
+  }
+}
+
 exports.resolveInvite = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
   const code = String(request.data?.inviteCode || '').trim().toUpperCase();
@@ -129,6 +138,29 @@ exports.resolveInvite = onCall(async (request) => {
 });
 
 exports.leaveTavern = onCall(async (request) => { if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.'); const ref = getFirestore().collection('taverns').doc(String(request.data?.tavernId || '')).collection('members').doc(request.auth.uid); const member = await ref.get(); if (!member.exists) throw new HttpsError('not-found', 'Você não participa desta Taberna.'); if (member.data().role === 'OWNER') throw new HttpsError('failed-precondition', 'OWNER_CANNOT_LEAVE'); await ref.update({ status: 'LEFT', leftAt: FieldValue.serverTimestamp() }); return { ok: true }; });
+
+// Storage paths are never exposed as public URLs. A member receives a short
+// lived URL only after the server proves that the check-in is in that Tavern's
+// feed and that the member is still ACTIVE.
+exports.getCheckInPhotoUrl = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
+  const tavernId = String(request.data?.tavernId || '');
+  const checkInId = String(request.data?.checkInId || '');
+  if (!tavernId || !checkInId) throw new HttpsError('invalid-argument', 'Foto inválida.');
+  const db = getFirestore();
+  const [member, feed] = await Promise.all([
+    db.doc(`taverns/${tavernId}/members/${request.auth.uid}`).get(),
+    db.doc(`taverns/${tavernId}/feed/${checkInId}`).get(),
+  ]);
+  if (!member.exists || member.data().status !== 'ACTIVE') throw new HttpsError('permission-denied', 'Você não participa desta Taberna.');
+  if (!feed.exists) throw new HttpsError('not-found', 'Foto não encontrada.');
+  const path = typeof feed.data().photoStoragePath === 'string' ? feed.data().photoStoragePath : '';
+  const ownerId = typeof feed.data().userId === 'string' ? feed.data().userId : '';
+  const allowedPrefix = `users/${ownerId}/checkins/${checkInId}/`;
+  if (!path || !ownerId || !path.startsWith(allowedPrefix)) throw new HttpsError('not-found', 'Foto não encontrada.');
+  const [url] = await admin.storage().bucket().file(path).getSignedUrl({ action: 'read', expires: Date.now() + 10 * 60 * 1000 });
+  return { url, expiresAtMillis: Date.now() + 10 * 60 * 1000 };
+});
 
 function periodKeys(timestamp) {
   const date = new Date(timestamp);
@@ -158,6 +190,111 @@ async function ensureMissionCatalog(db) {
   await batch.commit();
 }
 
+function missionOccurrenceId(date, missionId) {
+  return `${date}_${missionId}`;
+}
+
+function timestampOrNull(value) {
+  const millis = timestampToMillis(value);
+  return millis > 0 ? millis : null;
+}
+
+function missionResponse(data) {
+  return {
+    occurrenceId: data.occurrenceId,
+    missionId: data.missionId,
+    date: data.date,
+    status: data.status,
+    acceptedAt: timestampOrNull(data.acceptedAt),
+    startedAt: timestampOrNull(data.startedAt),
+    completedAt: timestampOrNull(data.completedAt),
+  };
+}
+
+// The daily board and its state are server-owned so a second device resumes
+// the same accepted mission and timer instead of generating a local variant.
+exports.getDailyMissionBoard = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
+  const date = String(request.data?.date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpsError('invalid-argument', 'Data de missão inválida.');
+  const requestedDay = Date.parse(`${date}T00:00:00Z`);
+  const currentDay = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(requestedDay) || Math.abs(requestedDay - currentDay) > 24 * 60 * 60 * 1000) {
+    throw new HttpsError('invalid-argument', 'O quadro diário está disponível apenas para a data atual.');
+  }
+  const db = getFirestore();
+  const user = await db.doc(`users/${request.auth.uid}`).get();
+  if (!user.exists || !hasHeroProfile(user.data())) throw new HttpsError('failed-precondition', 'Crie seu herói antes de acessar missões.');
+  await ensureMissionCatalog(db);
+  const missionsRef = db.collection(`userMissions/${request.auth.uid}/items`);
+  const existing = await missionsRef.where('date', '==', date).get();
+  if (existing.empty) {
+    const byCategory = new Map();
+    missionCatalog.filter((mission) => mission.enabled).forEach((mission) => {
+      const list = byCategory.get(mission.category) || [];
+      list.push(mission);
+      byCategory.set(mission.category, list);
+    });
+    const selected = [...byCategory.values()].flatMap((items) => items
+      .slice()
+      .sort((a, b) => `${date}:${a.id}`.localeCompare(`${date}:${b.id}`))
+      .slice(0, 4));
+    const dayRef = db.doc(`userMissionDays/${encodeURIComponent(request.auth.uid)}_${date}`);
+    await db.runTransaction(async (transaction) => {
+      const day = await transaction.get(dayRef);
+      if (day.exists) return;
+      transaction.create(dayRef, { userId: request.auth.uid, date, acceptedCount: 0, createdAt: FieldValue.serverTimestamp() });
+      selected.forEach((mission) => {
+        const occurrenceId = missionOccurrenceId(date, mission.id);
+        transaction.create(missionsRef.doc(occurrenceId), {
+          userId: request.auth.uid, occurrenceId, missionId: mission.id, date,
+          status: 'AVAILABLE', createdAt: FieldValue.serverTimestamp(),
+        });
+      });
+    });
+  }
+  const [items, catalog] = await Promise.all([
+    missionsRef.where('date', '==', date).get(),
+    db.collection('missions').get(),
+  ]);
+  const catalogById = new Map(catalog.docs.map((doc) => [doc.id, doc.data()]));
+  return { items: items.docs.map((doc) => ({ ...missionResponse(doc.data()), mission: catalogById.get(doc.data().missionId) || null })) };
+});
+
+exports.updateMissionStatus = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
+  const occurrenceId = String(request.data?.occurrenceId || '');
+  const action = String(request.data?.action || '');
+  if (!occurrenceId || !['ACCEPT', 'ABANDON', 'START'].includes(action)) throw new HttpsError('invalid-argument', 'Transição de missão inválida.');
+  const db = getFirestore();
+  const ref = db.doc(`userMissions/${request.auth.uid}/items/${occurrenceId}`);
+  await db.runTransaction(async (transaction) => {
+    const item = await transaction.get(ref);
+    if (!item.exists) throw new HttpsError('not-found', 'Missão não encontrada.');
+    const data = item.data();
+    const dayRef = db.doc(`userMissionDays/${encodeURIComponent(request.auth.uid)}_${data.date}`);
+    const day = await transaction.get(dayRef);
+    if (!day.exists) throw new HttpsError('failed-precondition', 'Quadro diário não encontrado.');
+    if (action === 'ACCEPT') {
+      if (data.status === 'AVAILABLE') {
+        if (Number(day.data().acceptedCount || 0) >= 5) throw new HttpsError('failed-precondition', 'Limite de cinco missões aceitas atingido.');
+        transaction.update(ref, { status: 'ACCEPTED', acceptedAt: FieldValue.serverTimestamp() });
+        transaction.update(dayRef, { acceptedCount: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() });
+      }
+    } else if (action === 'ABANDON') {
+      if (data.status === 'ACCEPTED') {
+        transaction.update(ref, { status: 'ABANDONED', abandonedAt: FieldValue.serverTimestamp() });
+        transaction.update(dayRef, { acceptedCount: FieldValue.increment(-1), updatedAt: FieldValue.serverTimestamp() });
+      }
+    } else if (action === 'START' && data.status === 'ACCEPTED' && !data.startedAt) {
+      transaction.update(ref, { startedAt: FieldValue.serverTimestamp() });
+    }
+  });
+  // Read after the transaction so the callable returns the server Timestamp
+  // rather than an optimistic client clock.
+  return missionResponse((await ref.get()).data());
+});
+
 // The catalog is server-owned. Creating a user profile is the first online
 // action in the app, so it also makes a fresh project ready for check-ins.
 exports.seedMissionCatalog = onDocumentCreated('users/{userId}', async () => {
@@ -177,7 +314,7 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   const missionRef = db.doc(`missions/${checkIn.missionId}`);
   const mission = await missionRef.get();
   if (!mission.exists || mission.data().enabled !== true) {
-    await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSION_NOT_FOUND' });
+    await rejectCheckIn(checkInRef, checkIn, 'MISSION_NOT_FOUND');
     return;
   }
   const officialXp = Number(mission.data().xpReward || 0);
@@ -185,14 +322,14 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   const startedAt = Number(checkIn.startedAt || completedAt);
   const durationSeconds = Number(checkIn.durationSeconds || 0);
   if (completedAt < startedAt || completedAt - startedAt > 24 * 60 * 60 * 1000 || Math.abs(durationSeconds - Math.floor((completedAt - startedAt) / 1000)) > 2) {
-    await checkInRef.update({ status: 'REJECTED', rejectionReason: 'INVALID_DURATION' });
+    await rejectCheckIn(checkInRef, checkIn, 'INVALID_DURATION');
     return;
   }
 
   const userId = checkIn.userId;
   const occurrenceId = String(checkIn.occurrenceId || checkIn.id || '');
   if (!occurrenceId) {
-    await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSING_OCCURRENCE' });
+    await rejectCheckIn(checkInRef, checkIn, 'MISSING_OCCURRENCE');
     return;
   }
   const duplicateSnapshot = await db.collection('checkins')
@@ -202,7 +339,7 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
     .get();
   const duplicate = duplicateSnapshot.docs.find((doc) => doc.id !== snapshot.id);
   if (duplicate) {
-    await checkInRef.update({ status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
+    await rejectCheckIn(checkInRef, checkIn, 'MISSION_ALREADY_COMPLETED');
     return;
   }
   const memberships = await db.collectionGroup('members').where('userId', '==', userId).where('status', '==', 'ACTIVE').get();
@@ -213,21 +350,29 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
     return tavernRef && joinedAt <= completedAt ? tavernRef : null;
   }).filter(Boolean);
   const missionLockRef = db.doc(`missionLocks/${encodeURIComponent(userId)}_${encodeURIComponent(occurrenceId)}`);
+  const missionStateRef = db.doc(`userMissions/${userId}/items/${occurrenceId}`);
   const statsRef = db.doc(`userStats/${userId}`);
   const userDayRef = db.doc(`userActivityDays/${encodeURIComponent(userId)}_${activityDate}`);
   const tavernDays = eligibleTaverns.map((tavernRef) => tavernRef.collection('activityDays').doc(`${userId}_${activityDate}`));
   const validated = await db.runTransaction(async (transaction) => {
     // Read every lock before writing. Firestore retries the transaction if another
     // check-in reaches the same mission or the same activity day concurrently.
-    const [missionLock, userDay, ...tavernDaySnapshots] = await Promise.all(
-      [missionLockRef, userDayRef, ...tavernDays].map((ref) => transaction.get(ref)),
+    const [missionLock, userDay, missionState, ...tavernDaySnapshots] = await Promise.all(
+      [missionLockRef, userDayRef, missionStateRef, ...tavernDays].map((ref) => transaction.get(ref)),
     );
     if (missionLock.exists) {
       transaction.update(checkInRef, { status: 'REJECTED', rejectionReason: 'MISSION_ALREADY_COMPLETED' });
       return false;
     }
+    if (!missionState.exists || missionState.data().userId !== userId
+      || missionState.data().missionId !== checkIn.missionId
+      || missionState.data().status !== 'ACCEPTED') {
+      transaction.update(checkInRef, { status: 'REJECTED', rejectionReason: 'MISSION_NOT_ACCEPTED' });
+      return false;
+    }
     transaction.create(missionLockRef, { userId, occurrenceId, missionId: checkIn.missionId, checkInId: snapshot.id, createdAt: FieldValue.serverTimestamp() });
     transaction.update(checkInRef, { status: 'VALIDATED', xpEarned: officialXp, validatedAt: FieldValue.serverTimestamp() });
+    transaction.update(missionStateRef, { status: 'COMPLETED', completedAt: FieldValue.serverTimestamp(), checkInId: snapshot.id });
     if (!userDay.exists) transaction.create(userDayRef, { userId, date: activityDate, createdAt: FieldValue.serverTimestamp() });
     transaction.set(statsRef, {
       userId,
@@ -268,7 +413,11 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
     });
     return true;
   });
-  if (!validated) return;
+  if (!validated) {
+    const rejected = await checkInRef.get();
+    if (rejected.data()?.status === 'REJECTED') await rejectCheckIn(checkInRef, checkIn, rejected.data().rejectionReason || 'REJECTED');
+    return;
+  }
 
   // Notifications are sent only after the authoritative write succeeds.
   const tokens = [];

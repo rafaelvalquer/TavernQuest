@@ -19,6 +19,7 @@ val releaseStoreFile = releaseProperty("storeFile")
 val releaseStorePassword = releaseProperty("storePassword")
 val releaseKeyAlias = releaseProperty("keyAlias")
 val releaseKeyPassword = releaseProperty("keyPassword")
+val useFirebaseEmulators = providers.gradleProperty("useFirebaseEmulators").orNull == "true"
 
 // Keep offline/local development working until the Firebase project is created.
 if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
@@ -50,6 +51,19 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "com.luminor.tavernquest.HiltTestRunner"
+    }
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", useFirebaseEmulators.toString())
+        }
+        create("prod") {
+            dimension = "environment"
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
+        }
     }
     signingConfigs {
         if (listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }) {

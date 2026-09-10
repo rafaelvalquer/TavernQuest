@@ -21,6 +21,13 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if false;
     }
+    match /userMissions/{uid}/items/{occurrenceId} {
+      allow read: if owner(uid);
+      allow write: if false;
+    }
+    match /userMissionDays/{dayId} {
+      allow read, write: if false;
+    }
     match /checkins/{checkInId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid

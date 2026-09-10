@@ -16,6 +16,8 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -30,7 +32,15 @@ class TavernQuestApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        runCatching {
+        if (BuildConfig.USE_FIREBASE_EMULATORS) {
+            runCatching {
+                FirebaseAuth.getInstance().useEmulator("10.0.2.2", 9099)
+                FirebaseFirestore.getInstance().useEmulator("10.0.2.2", 8080)
+                FirebaseStorage.getInstance().useEmulator("10.0.2.2", 9199)
+                FirebaseFunctions.getInstance("southamerica-east1").useEmulator("10.0.2.2", 5001)
+            }
+        }
+        if (!BuildConfig.USE_FIREBASE_EMULATORS) runCatching {
             FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
                 if (BuildConfig.DEBUG) DebugAppCheckProviderFactory.getInstance()
                 else PlayIntegrityAppCheckProviderFactory.getInstance(),

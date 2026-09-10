@@ -1,5 +1,6 @@
 package com.luminor.tavernquest.feature.quest.completion
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,7 +34,17 @@ import java.io.File
 private fun copyPhoto(context:Context,uri:Uri):String?=runCatching{
     val dir=File(context.filesDir,"quest_photos").apply{mkdirs()}
     val target=File(dir,"quest_${System.currentTimeMillis()}.jpg")
-    val input=requireNotNull(context.contentResolver.openInputStream(uri))
-    input.use { source->target.outputStream().use { output->source.copyTo(output)} }
+    val resolver=context.contentResolver
+    val bounds=BitmapFactory.Options().apply{inJustDecodeBounds=true}
+    resolver.openInputStream(uri).use { input -> BitmapFactory.decodeStream(input,null,bounds) }
+    var sample=1
+    while(bounds.outWidth/sample>1600||bounds.outHeight/sample>1600)sample*=2
+    val bitmap=resolver.openInputStream(uri).use { input -> BitmapFactory.decodeStream(requireNotNull(input),null,BitmapFactory.Options().apply{inSampleSize=sample}) } ?: error("Não foi possível ler a foto.")
+    var quality=88
+    do {
+        target.outputStream().use { output -> bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG,quality,output) }
+        quality-=8
+    } while(target.length()>2L*1024*1024&&quality>=48)
+    bitmap.recycle()
     target.absolutePath
 }.getOrNull()

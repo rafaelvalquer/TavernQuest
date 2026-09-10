@@ -100,12 +100,24 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
     override fun observeFeed(tavernId: String): Flow<List<CheckIn>> = callbackFlow {
         val db = firestore ?: run { trySend(emptyList()); close(); return@callbackFlow }
         auth?.currentUser ?: run { trySend(emptyList()); close(); return@callbackFlow }
+        val photoUrls = mutableMapOf<String, String?>()
         val registration = db.collection("taverns").document(tavernId).collection("feed")
             .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .limit(50)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) { trySend(emptyList()); close(); return@addSnapshotListener }
-                trySend(snapshot?.documents.orEmpty().map { publication -> publication.toCheckIn() })
+                launch {
+                    val feed = snapshot?.documents.orEmpty().map { publication ->
+                        val checkIn = publication.toCheckIn()
+                        val storagePath = checkIn.proofPhotoUrl
+                        if (storagePath == null) checkIn else {
+                            val url = if (photoUrls.containsKey(checkIn.id)) photoUrls[checkIn.id]
+                                else resolvePhotoUrl(tavernId, checkIn.id).also { photoUrls[checkIn.id] = it }
+                            checkIn.copy(proofPhotoUrl = url)
+                        }
+                    }
+                    trySend(feed)
+                }
             }
         awaitClose { registration.remove() }
     }
@@ -184,4 +196,13 @@ class FirebaseTavernRemoteRepository(private val firestore: FirebaseFirestore?, 
     }
 
     private fun missingConfiguration() = IllegalStateException("Firebase Firestore não configurado.")
+
+    private suspend fun resolvePhotoUrl(tavernId: String, checkInId: String): String? {
+        val callable = functions ?: return null
+        return runCatching {
+            @Suppress("UNCHECKED_CAST")
+            val result = await(callable.getHttpsCallable("getCheckInPhotoUrl").call(mapOf("tavernId" to tavernId, "checkInId" to checkInId))).data as? Map<String, Any?>
+            result?.get("url") as? String
+        }.getOrNull()
+    }
 }

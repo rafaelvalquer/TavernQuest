@@ -1,0 +1,28 @@
+name: Verify TavernQuest
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  android-and-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: firebase/tests/package-lock.json
+      - name: Test Android dev unit tests
+        run: ./gradlew :app:testDevDebugUnitTest --console=plain
+      - name: Test Firestore production rules
+        working-directory: firebase/tests
+        run: |
+          npm ci
+          npm run test:rules
