@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -24,11 +25,11 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
 @Composable
-fun AuthScreen(onAuthenticated: (Boolean) -> Unit, vm: AuthViewModel = hiltViewModel()) {
+fun AuthScreen(onAuthenticated: () -> Unit, vm: AuthViewModel = hiltViewModel()) {
     val state by vm.ui.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    LaunchedEffect(state.authenticated) { if (state.authenticated) onAuthenticated(state.needsHero) }
+    LaunchedEffect(state.authenticated) { if (state.authenticated) onAuthenticated() }
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Entre para começar sua aventura")
         Text("Use sua conta Google para guardar seu herói, missões e Tabernas com segurança.")
@@ -43,7 +44,11 @@ fun AuthScreen(onAuthenticated: (Boolean) -> Unit, vm: AuthViewModel = hiltViewM
                     val credential = CredentialManager.create(context).getCredential(context, GetCredentialRequest.Builder().addCredentialOption(option).build()).credential
                     if (credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) return@launch vm.googleUnavailable()
                     vm.googleToken(GoogleIdTokenCredential.createFrom(credential.data).idToken)
-                } catch (_: GetCredentialException) { vm.googleUnavailable("Não foi possível concluir o login com Google.") }
+                } catch (error: GetCredentialCancellationException) {
+                    vm.googleCredentialFailure(error)
+                } catch (error: GetCredentialException) {
+                    vm.googleCredentialFailure(error)
+                }
             }
         }) { Text(if (state.loading) "Entrando…" else "Continuar com Google") }
     }

@@ -54,7 +54,7 @@ class TavernQuestApplication : Application(), Configuration.Provider {
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("pending-checkins-periodic", ExistingPeriodicWorkPolicy.KEEP, periodic)
-        runCatching {
+        if (!BuildConfig.USE_FIREBASE_EMULATORS) runCatching {
             FirebaseAuth.getInstance().addAuthStateListener { auth ->
                 val user = auth.currentUser ?: return@addAuthStateListener
                 FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
