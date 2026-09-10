@@ -1,8 +1,9 @@
 package com.luminor.tavernquest.feature.splash
 
+import com.luminor.tavernquest.feature.auth.LoginFailureStage
+import com.luminor.tavernquest.feature.auth.reportAuthFailure
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.luminor.tavernquest.domain.repository.AuthRepository
 import com.luminor.tavernquest.domain.repository.HeroRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,7 +45,7 @@ class SplashViewModel @Inject constructor(
     fun logout() { auth.logout() }
 
     private suspend fun FlowCollector<SessionBootstrapState>.emitFailure(error: Throwable) {
-        runCatching { FirebaseCrashlytics.getInstance().recordException(error) }
+        reportAuthFailure(error, LoginFailureStage.ACCOUNT_SETUP)
         emit(SessionBootstrapState.Error(sessionBootstrapFailure(error)))
     }
 }

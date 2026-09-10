@@ -13,8 +13,6 @@ import androidx.work.WorkManager
 import com.luminor.tavernquest.data.sync.PendingCheckInWorker
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -42,8 +40,7 @@ class TavernQuestApplication : Application(), Configuration.Provider {
         }
         if (!BuildConfig.USE_FIREBASE_EMULATORS) runCatching {
             FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
-                if (BuildConfig.DEBUG) DebugAppCheckProviderFactory.getInstance()
-                else PlayIntegrityAppCheckProviderFactory.getInstance(),
+                appCheckProviderFactory(),
             )
         }
         val request = OneTimeWorkRequestBuilder<PendingCheckInWorker>()

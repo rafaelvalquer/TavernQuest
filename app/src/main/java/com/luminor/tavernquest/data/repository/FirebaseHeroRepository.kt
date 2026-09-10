@@ -2,6 +2,7 @@ package com.luminor.tavernquest.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.google.firebase.functions.FirebaseFunctions
 import com.luminor.tavernquest.data.local.database.dao.HeroDao
 import com.luminor.tavernquest.data.mapper.toDomain
@@ -39,9 +40,9 @@ class FirebaseHeroRepository(
 
     override suspend fun get(): Hero? {
         val user = auth?.currentUser ?: return null
-        val db = firestore ?: return null
+        val db = requireNotNull(firestore) { "Firebase não configurado." }
         val stats = await(db.collection("userStats").document(user.uid).get()).getLong("totalXp") ?: 0L
-        val hero = await(db.collection("users").document(user.uid).get()).toHeroOrNull(user.uid, stats)
+        val hero = await(db.collection("users").document(user.uid).get(Source.SERVER)).toHeroOrNull(user.uid, stats)
         if (hero != null) dao.insert(hero.toEntity())
         return hero
     }
@@ -77,12 +78,14 @@ class FirebaseHeroRepository(
         if (!exists()) return null
         val name = getString("name")?.trim().orEmpty()
         if (name.isBlank()) return null
+        val heroClass = getString("heroClass")?.let { runCatching { HeroClass.valueOf(it) }.getOrNull() } ?: return null
+        val appearance = getString("appearance")?.let { runCatching { HeroAppearance.valueOf(it) }.getOrNull() } ?: return null
         return Hero(
             id = uid,
             userId = uid,
             name = name,
-            heroClass = getString("heroClass")?.let { runCatching { HeroClass.valueOf(it) }.getOrNull() } ?: HeroClass.WARRIOR,
-            appearance = getString("appearance")?.let { runCatching { HeroAppearance.valueOf(it) }.getOrNull() } ?: HeroAppearance.MASCULINE,
+            heroClass = heroClass,
+            appearance = appearance,
             totalXp = totalXp.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt(),
             createdAt = epochMillis("createdAt") ?: 0L,
         )

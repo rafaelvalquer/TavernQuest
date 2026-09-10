@@ -41,12 +41,12 @@ tasks.configureEach {
 
 android {
     namespace = "com.luminor.tavernquest"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.luminor.tavernquest"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 2
         versionName = "1.0.1"
         testInstrumentationRunner = "com.luminor.tavernquest.HiltTestRunner"
@@ -124,7 +124,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.functions)
-    implementation(libs.firebase.appcheck.debug)
+    debugImplementation(libs.firebase.appcheck.debug)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)

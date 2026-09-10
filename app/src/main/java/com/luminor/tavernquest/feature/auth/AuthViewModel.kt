@@ -2,7 +2,6 @@ package com.luminor.tavernquest.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.luminor.tavernquest.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +29,7 @@ class AuthViewModel @Inject constructor(private val auth: AuthRepository) : View
     fun googleCredentialFailure(error: Throwable) = showFailure(error, LoginFailureStage.GOOGLE_CREDENTIAL)
 
     private fun showFailure(error: Throwable, stage: LoginFailureStage) {
-        runCatching { FirebaseCrashlytics.getInstance().recordException(error) }
+        reportAuthFailure(error, stage)
         _ui.update { it.copy(loading = false, error = loginFailureMessage(error, stage)) }
     }
 }

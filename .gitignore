@@ -17,5 +17,8 @@ app/keys/
 firebase/functions/node_modules/
 firebase/tests/node_modules/
 firebase/tests/firestore-debug.log
+firebase/tests/storage-debug.log
+firebase/tests/firebase-debug.log
 .gradle-local/
+.kotlin/
 .tmp/

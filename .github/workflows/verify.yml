@@ -19,9 +19,15 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: firebase/tests/package-lock.json
-      - name: Test Android dev unit tests
-        run: ./gradlew :app:testDevDebugUnitTest --console=plain
-      - name: Test Firestore production rules
+      - name: Verify Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+      - name: Lint production build
+        run: ./gradlew :app:lintProdDebug --console=plain
+      - name: Test Android production unit tests
+        run: ./gradlew :app:testProdDebugUnitTest --console=plain
+      - name: Build production debug APK
+        run: ./gradlew :app:assembleProdDebug --console=plain
+      - name: Test Firestore and Storage production rules
         working-directory: firebase/tests
         run: |
           npm ci
