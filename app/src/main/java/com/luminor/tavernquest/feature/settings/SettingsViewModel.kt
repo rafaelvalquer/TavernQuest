@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel class SettingsViewModel @Inject constructor(private val repo: SettingsRepository, private val auth: AuthRepository, private val db: TavernQuestDatabase, private val reset: ResetGameUseCase): ViewModel() {
@@ -19,5 +21,5 @@ import javax.inject.Inject
  fun haptics(v:Boolean)=viewModelScope.launch{repo.setHaptics(v)}
  fun reset(onComplete:()->Unit)=viewModelScope.launch{reset();onComplete()}
  fun requestLogout(onSafe:()->Unit,onPending:(Int)->Unit)=viewModelScope.launch{val pending=db.activityDao().countPending();if(pending==0)onSafe()else onPending(pending)}
- fun logoutDiscardingPending(onComplete:()->Unit)=viewModelScope.launch{db.clearAllTables();auth.logout();onComplete()}
+ fun logoutDiscardingPending(onComplete:()->Unit)=viewModelScope.launch{withContext(Dispatchers.IO){db.clearAllTables()};auth.logout();onComplete()}
 }

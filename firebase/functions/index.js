@@ -16,7 +16,9 @@ function inviteCodeFromId(id) {
 
 function hasHeroProfile(data) {
   return typeof data?.name === 'string' && data.name.trim().length >= 2
-    && typeof data.heroClass === 'string' && typeof data.appearance === 'string';
+    && data.name.trim().length <= 32
+    && ['WARRIOR', 'MAGE', 'RANGER', 'ARTISAN', 'GUARDIAN'].includes(data.heroClass)
+    && ['MASCULINE', 'FEMININE'].includes(data.appearance);
 }
 
 admin.initializeApp();
@@ -31,12 +33,12 @@ exports.bootstrapProfile = onCall(async (request) => {
   if (!['WARRIOR', 'MAGE', 'RANGER', 'ARTISAN', 'GUARDIAN'].includes(heroClass)) throw new HttpsError('invalid-argument', 'Classe inválida.');
   if (!['MASCULINE', 'FEMININE'].includes(appearance)) throw new HttpsError('invalid-argument', 'Aparência inválida.');
   const ref = getFirestore().doc(`users/${request.auth.uid}`);
-  const existing = await ref.get();
+  return getFirestore().runTransaction(async (transaction) => {
+  const existing = await transaction.get(ref);
   const existingData = existing.data() || {};
-  const hasHero = typeof existingData.name === 'string' && existingData.name.trim().length >= 2
-    && typeof existingData.heroClass === 'string' && typeof existingData.appearance === 'string';
+  const hasHero = hasHeroProfile(existingData);
   if (!hasHero) {
-    await ref.set({
+    transaction.set(ref, {
       userId: request.auth.uid,
       name,
       heroClass,
@@ -49,6 +51,7 @@ exports.bootstrapProfile = onCall(async (request) => {
     }, { merge: true });
   }
   return { userId: request.auth.uid, created: !hasHero };
+  });
 });
 
 // This intentionally creates only an account record. Hero data is added later by
@@ -56,10 +59,11 @@ exports.bootstrapProfile = onCall(async (request) => {
 exports.ensureUserAccount = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login com Google.');
   const ref = getFirestore().doc(`users/${request.auth.uid}`);
-  const existing = await ref.get();
+  return getFirestore().runTransaction(async (transaction) => {
+  const existing = await transaction.get(ref);
   const data = existing.data() || {};
   const token = request.auth.token || {};
-  await ref.set({
+  transaction.set(ref, {
     userId: request.auth.uid,
     authProvider: 'google.com',
     accountCreatedAt: data.accountCreatedAt || FieldValue.serverTimestamp(),
@@ -69,7 +73,8 @@ exports.ensureUserAccount = onCall(async (request) => {
     timezone: String(request.data?.timezone || data.timezone || 'UTC').slice(0, 64),
     fcmTokens: Array.isArray(data.fcmTokens) ? data.fcmTokens : [],
   }, { merge: true });
-  return { userId: request.auth.uid, hasHero: typeof data.name === 'string' && data.name.trim().length >= 2 };
+  return { userId: request.auth.uid, hasHero: hasHeroProfile(data) };
+  });
 });
 
 exports.registerDeviceToken = onCall(async (request) => {
@@ -109,9 +114,46 @@ exports.createTavern = onCall(async (request) => {
   throw new HttpsError('aborted', 'Não foi possível reservar um código de convite. Tente novamente.');
 });
 
+function normalizedInviteCode(value) {
+  if (typeof value !== 'string') throw new HttpsError('invalid-argument', 'Informe um código de convite válido.');
+  const code = value.trim().toUpperCase();
+  if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(code)) {
+    throw new HttpsError('invalid-argument', 'Informe um código de convite válido.');
+  }
+  return code;
+}
+
 exports.joinTavern = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login para entrar em uma Taberna.');
-  const code = String(request.data?.inviteCode || '').trim().toUpperCase(); const db = getFirestore(); const invite = await db.collection('invites').doc(code).get(); if (!invite.exists) throw new HttpsError('not-found', 'Convite inválido.'); const user = await db.doc(`users/${request.auth.uid}`).get(); if (!user.exists || !hasHeroProfile(user.data())) throw new HttpsError('failed-precondition', 'Crie seu herói antes de entrar em uma Taberna.'); const tavernId = invite.data().tavernId; const member = db.collection('taverns').doc(tavernId).collection('members').doc(request.auth.uid); const existing = await member.get(); if (!existing.exists) await member.create({ userId: request.auth.uid, heroId: request.auth.uid, role: 'MEMBER', status: 'ACTIVE', joinedAt: FieldValue.serverTimestamp() }); else if (existing.data().status !== 'ACTIVE') await member.update({ status: 'ACTIVE', joinedAt: FieldValue.serverTimestamp(), leftAt: FieldValue.delete() }); return { tavernId };
+  const code = normalizedInviteCode(request.data?.inviteCode);
+  const db = getFirestore();
+  return db.runTransaction(async (transaction) => {
+    const invite = await transaction.get(db.collection('invites').doc(code));
+    if (!invite.exists) throw new HttpsError('not-found', 'Convite inválido.');
+    const tavernId = invite.data().tavernId;
+    if (typeof tavernId !== 'string' || !tavernId || tavernId.includes('/')) {
+      throw new HttpsError('not-found', 'Convite inválido.');
+    }
+    const tavern = db.collection('taverns').doc(tavernId);
+    const member = tavern.collection('members').doc(request.auth.uid);
+    const [user, tavernSnapshot, existing] = await transaction.getAll(
+      db.doc(`users/${request.auth.uid}`), tavern, member,
+    );
+    if (!tavernSnapshot.exists || tavernSnapshot.data().inviteCode !== code) {
+      throw new HttpsError('not-found', 'Convite inválido.');
+    }
+    if (!user.exists || !hasHeroProfile(user.data())) {
+      throw new HttpsError('failed-precondition', 'Crie seu herói antes de entrar em uma Taberna.');
+    }
+    if (!existing.exists) {
+      transaction.create(member, { userId: request.auth.uid, heroId: request.auth.uid, role: 'MEMBER', status: 'ACTIVE', joinedAt: FieldValue.serverTimestamp() });
+    } else if (existing.data().status === 'LEFT') {
+      transaction.update(member, { status: 'ACTIVE', joinedAt: FieldValue.serverTimestamp(), leftAt: FieldValue.delete() });
+    } else if (existing.data().status !== 'ACTIVE') {
+      throw new HttpsError('permission-denied', 'Sua participação nesta Taberna não está disponível.');
+    }
+    return { tavernId };
+  });
 });
 
 function timestampToMillis(value) {
@@ -130,7 +172,7 @@ async function rejectCheckIn(checkInRef, checkIn, reason) {
 
 exports.resolveInvite = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
-  const code = String(request.data?.inviteCode || '').trim().toUpperCase();
+  const code = normalizedInviteCode(request.data?.inviteCode);
   const invite = await getFirestore().collection('invites').doc(code).get();
   if (!invite.exists) throw new HttpsError('not-found', 'Código não encontrado.');
   const data = invite.data();

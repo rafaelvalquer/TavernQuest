@@ -6,6 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.luminor.tavernquest.domain.repository.AuthRepository
 import com.luminor.tavernquest.domain.repository.HeroRepository
+import com.luminor.tavernquest.data.local.database.TavernQuestDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.FlowCollector
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 class SplashViewModel @Inject constructor(
     private val auth: AuthRepository,
     private val heroes: HeroRepository,
+    private val db: TavernQuestDatabase,
 ) : ViewModel() {
     private val refresh = MutableStateFlow(0)
 
@@ -42,7 +47,10 @@ class SplashViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SessionBootstrapState.Loading)
 
     fun retry() { refresh.value += 1 }
-    fun logout() { auth.logout() }
+    fun logout() = viewModelScope.launch {
+        withContext(Dispatchers.IO) { db.clearAllTables() }
+        auth.logout()
+    }
 
     private suspend fun FlowCollector<SessionBootstrapState>.emitFailure(error: Throwable) {
         reportAuthFailure(error, LoginFailureStage.ACCOUNT_SETUP)
