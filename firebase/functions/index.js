@@ -5,6 +5,7 @@ const admin = require('firebase-admin');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const missionCatalog = require('./missions.json');
 const { consumeRateLimit } = require('./rate-limit');
+const { validCheckInTiming } = require('./checkin-validation');
 const DEPLOY_REVISION = 2;
 const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -367,7 +368,7 @@ exports.validateCheckIn = onDocumentCreated('checkins/{checkInId}', async (event
   const completedAt = Number(checkIn.completedAt || 0);
   const startedAt = Number(checkIn.startedAt || completedAt);
   const durationSeconds = Number(checkIn.durationSeconds || 0);
-  if (completedAt < startedAt || completedAt - startedAt > 24 * 60 * 60 * 1000 || Math.abs(durationSeconds - Math.floor((completedAt - startedAt) / 1000)) > 2) {
+  if (!validCheckInTiming(checkIn)) {
     await rejectCheckIn(checkInRef, checkIn, 'INVALID_DURATION');
     return;
   }

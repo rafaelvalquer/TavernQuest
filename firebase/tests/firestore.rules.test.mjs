@@ -17,6 +17,18 @@ afterEach(async () => env.clearFirestore());
 after(async () => env.cleanup());
 
 describe('Firestore production rules', () => {
+  it('permits the sync existence check without exposing another user check-in', async () => {
+    const alice = env.authenticatedContext('alice').firestore();
+    const bob = env.authenticatedContext('bob').firestore();
+    const path = 'checkins/new-checkin';
+    await assertSucceeds(getDoc(doc(alice, path)));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), path)));
+    await assertSucceeds(setDoc(doc(alice, path), {
+      userId: 'alice', status: 'PENDING_SYNC', xpEarned: 0, occurrenceId: 'mission',
+    }));
+    await assertSucceeds(getDoc(doc(alice, path)));
+    await assertFails(getDoc(doc(bob, path)));
+  });
   it('blocks direct invite lookup and client changes to rate limits', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'invites/ABCDEF'), { tavernId: 'tavern' });

@@ -37,7 +37,17 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.luminor.tavernquest.data.local --console=plain
+          script: ./gradlew :app:connectedDevDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.package=com.luminor.tavernquest.data.local,com.luminor.tavernquest.feature.auth --console=plain
+      - name: Preserve emulator test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-results-api-${{ matrix.api }}
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          retention-days: 14
+          if-no-files-found: warn
   android-and-rules:
     runs-on: ubuntu-latest
     steps:
@@ -76,3 +86,17 @@ jobs:
         env:
           GCLOUD_PROJECT: demo-tavernquest
         run: npm run test:accounts
+      - name: Test server activity validation
+        working-directory: firebase/functions
+        run: npm test
+      - name: Preserve Android verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-code-test-reports
+          path: |
+            app/build/reports/lint-results-prodRelease.*
+            app/build/reports/tests/testProdReleaseUnitTest/
+            app/build/test-results/testProdReleaseUnitTest/
+          retention-days: 14
+          if-no-files-found: warn

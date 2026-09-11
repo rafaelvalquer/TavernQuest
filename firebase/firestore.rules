@@ -29,7 +29,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /checkins/{checkInId} {
-      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      // The sync client checks for an existing result before its first upload.
+      // A missing document has no owner yet; existing documents stay private.
+      allow get: if signedIn() && (!exists(/databases/$(database)/documents/checkins/$(checkInId))
+        || resource.data.userId == request.auth.uid);
+      allow list: if signedIn() && resource.data.userId == request.auth.uid;
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'PENDING_SYNC'
         && request.resource.data.xpEarned == 0;

@@ -6,6 +6,7 @@ import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.functions.FirebaseFunctionsException
+import com.google.firebase.firestore.FirebaseFirestoreException
 
 internal enum class LoginFailureStage { GOOGLE_CREDENTIAL, FIREBASE_AUTH, ACCOUNT_SETUP }
 
@@ -13,7 +14,9 @@ internal enum class LoginFailureStage { GOOGLE_CREDENTIAL, FIREBASE_AUTH, ACCOUN
 internal fun loginFailureMessage(error: Throwable, stage: LoginFailureStage): String {
     val detail = error.message.orEmpty()
     val authCode = (error as? FirebaseAuthException)?.errorCode
+    val firestoreCode = (error as? FirebaseFirestoreException)?.code?.name
     return when {
+        firestoreCode == "UNAVAILABLE" || firestoreCode == "DEADLINE_EXCEEDED" -> "Não foi possível acessar seu perfil no Firebase. Verifique sua internet e toque em Tentar novamente."
         error is NoCredentialException -> "Nenhuma conta Google disponível para entrar. Adicione uma conta Google nas configurações do celular e tente novamente."
         error is GetCredentialCancellationException || detail.contains("cancel", ignoreCase = true) -> "A entrada com Google foi cancelada."
         error is FirebaseNetworkException || detail.contains("network", ignoreCase = true) || detail.contains("unavailable", ignoreCase = true) -> "Não foi possível conectar agora. Verifique sua internet e tente novamente."

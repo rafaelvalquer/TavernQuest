@@ -1,6 +1,7 @@
 package com.luminor.tavernquest.feature.auth
 
 import android.os.Build
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.functions.FirebaseFunctionsException
@@ -24,6 +25,8 @@ internal fun sanitizedAuthFailure(error: Throwable, stage: LoginFailureStage): E
 internal fun reportAuthFailure(error: Throwable, stage: LoginFailureStage) {
     if (error is CancellationException) throw error
     val sanitized = sanitizedAuthFailure(error, stage)
+    // Use the same sanitized reference when diagnosing a device without Crashlytics access.
+    Log.w("TavernQuestAuth", sanitized.message.orEmpty())
     runCatching {
         FirebaseCrashlytics.getInstance().apply {
             setCustomKey("auth_stage", stage.name)
