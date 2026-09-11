@@ -17,6 +17,14 @@ afterEach(async () => env.clearFirestore());
 after(async () => env.cleanup());
 
 describe('Firestore production rules', () => {
+  it('blocks direct invite lookup and client changes to rate limits', async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'invites/ABCDEF'), { tavernId: 'tavern' });
+    });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(getDoc(doc(alice, 'invites/ABCDEF')));
+    await assertFails(setDoc(doc(alice, 'users/alice/requestLimits/resolveInvite'), { count: 0 }));
+  });
   it('allows a user to read only their own profile', async () => {
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'users/alice'), { userId: 'alice', name: 'Alice' });

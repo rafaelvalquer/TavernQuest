@@ -4,6 +4,7 @@ const { setGlobalOptions } = require('firebase-functions/v2');
 const admin = require('firebase-admin');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const missionCatalog = require('./missions.json');
+const { consumeRateLimit } = require('./rate-limit');
 const DEPLOY_REVISION = 2;
 const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -92,6 +93,7 @@ exports.registerDeviceToken = onCall(async (request) => {
 
 exports.createTavern = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login para criar uma Taberna.');
+  await consumeRateLimit(request.auth.uid, 'createTavern', 5, 10 * 60_000);
   const name = String(request.data?.name || '').trim();
   if (!name || name.length > 64) throw new HttpsError('invalid-argument', 'Dados da Taberna inválidos.');
   const db = getFirestore();
@@ -125,6 +127,7 @@ function normalizedInviteCode(value) {
 
 exports.joinTavern = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login para entrar em uma Taberna.');
+  await consumeRateLimit(request.auth.uid, 'joinTavern', 30, 60_000);
   const code = normalizedInviteCode(request.data?.inviteCode);
   const db = getFirestore();
   return db.runTransaction(async (transaction) => {
@@ -172,6 +175,7 @@ async function rejectCheckIn(checkInRef, checkIn, reason) {
 
 exports.resolveInvite = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Faça login.');
+  await consumeRateLimit(request.auth.uid, 'resolveInvite', 30, 60_000);
   const code = normalizedInviteCode(request.data?.inviteCode);
   const invite = await getFirestore().collection('invites').doc(code).get();
   if (!invite.exists) throw new HttpsError('not-found', 'Código não encontrado.');

@@ -53,7 +53,8 @@ service cloud.firestore {
       }
     }
     match /invites/{code} {
-      allow get: if signedIn();
+      // Invite lookup goes through the rate-limited callable Function.
+      allow get: if false;
       allow list: if false;
       allow write: if false;
     }

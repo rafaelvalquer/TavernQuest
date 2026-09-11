@@ -63,12 +63,26 @@ test('two users share a tavern and duplicate join requests remain idempotent', a
   await assert.rejects(functions.joinTavern.run(request(member, { inviteCode: created.inviteCode })), { code: 'permission-denied' });
 });
 
-test('invalid invite syntax is rejected before database access', async () => {
+test('invalid invite syntax returns a useful argument error', async () => {
   for (const inviteCode of ['', 'abc/def', null, 123456]) {
     for (const handler of [functions.joinTavern, functions.resolveInvite]) {
       await assert.rejects(handler.run(request(`${prefix}-invalid`, { inviteCode })), { code: 'invalid-argument' });
     }
   }
+});
+
+test('rate limits remain atomic under concurrency and reset after the window', async () => {
+  const { consumeRateLimit } = require('./rate-limit');
+  const uid = `${prefix}-rate-limit`;
+  const now = Date.now();
+  const results = await Promise.allSettled(Array.from({ length: 5 }, () =>
+    consumeRateLimit(uid, 'test', 3, 60_000, now)));
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 3);
+  const rejected = results.filter(result => result.status === 'rejected');
+  assert.ok(rejected.every(result => result.reason.code === 'resource-exhausted'));
+  assert.ok(rejected.every(result => result.reason.details.retryAfterSeconds === 60));
+  await consumeRateLimit(uid, 'test', 3, 60_000, now + 60_000);
+  assert.equal((await getFirestore().doc(`users/${uid}/requestLimits/test`).get()).data().count, 1);
 });
 
 after(async () => { await Promise.all(getApps().map(deleteApp)); });
